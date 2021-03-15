@@ -19,4 +19,4 @@ This software has been rushed together in response to an emergency of constantly
 
 We hope this software will become obsolete when the root causes of the unreliability have been fixed. In the mean time, your kind suggestions and improvements are appreciated. Please feel free to modify and adapt the scripts for your own purposes. And please feel free to join the effort to find real lasting solutions to this issue.
 
-Please address your responses to the slimdevices forum.
+Please address your responses to the slimdevices forums https://forums.slimdevices.com/showthread.php?109953-WiFi-connection-unstable-lost-on-three-Radios or https://forums.slimdevices.com/showthread.php?111663-Community-Build-Radio-Firmware
