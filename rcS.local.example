@@ -1,0 +1,4 @@
+#!/bin/sh
+
+/usr/bin/logger -s "starting wlanpoke.sh"
+/etc/wlanpoke/wlanpoke.sh &

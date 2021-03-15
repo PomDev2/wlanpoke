@@ -1,0 +1,230 @@
+                    wlanpoke To Do and History
+
+To Do:
+
+
+2021.02.23.03   Enh: new command line switches to assign values to variables to replace the constants 'Restart Wait Seconds'
+
+2020.09.19.08   Enh: Support single and double quotes in log entries.
+
+2020.09.29.04   Fnc: reset wireless if 169.154 auto configuration link local address continues for a period.
+
+2020.09.29.03   Fnc: Evaluate: local log saves ping statistics on first ping fail, not sent to logging server, is this useful?
+
+2020.09.29.02   Bug: software stops detecting disconnect after a period of time.
+                    2020-09-28T22:20:28-0400 Chicken.21_063 failed 2020-09-28T22:19:47-0400 reset 2020-09-28T22:20:07-0400 up 2020-09-28T22:20:25-0400 ...
+                    9/28/2020 11:10:15 PM   Disconnected    192.168.8.21    Chicken     00-04-20-2A-75-6B
+                    was not detected. Similar on 4 other units at this time period.
+                     - nc was hung on 2 examined units, despite the -w 3 timeout argument. 
+                     - Perhaps something in the logging server hung it. But it should time out regardless.
+                     - nc_txNoHang() launches in background, saves PID for nc_ckHang () to later kill...
+
+2020.09.21.04   Doc: Create new "technical notes" document(s) to document software and aid troubleshooting.
+
+2020.09.20.01   Fnc: did.sh De-identification script to de-identify logs for contribution to public bug database.
+
+2020.09.19.08   Enh: Support single and double quotes in log entries.
+2020.09.19.04   Fnc: Consider alternate app names to replace 'wlanpoke'.
+2020.09.19.02   Enh: Add Battery and uptime to capture statistics.
+
+2020.09.17.10   Enh: Sanity check for configured options.
+2020.09.17.09   Enh: Improve CheckVal to at least reject -options as values.
+2020.09.17.08   Enh: Use more robust method to determine squeezeplay radio name and LMS server ip.
+2020.09.17.07   Enh: Automatically determine wlan interface (wlan0, eth1, etc.).
+2020.09.17.06   Fnc: Test and handle AP or lan outages.
+2020.09.17.05   Fnc: Test and handle ethernet cable attachment and disconnect.
+
+
+History:
+
+
+0.7.0 03/15/2021
+
+2021-03-02.01   Enh: ash http server? This works:
+                    while true; do (echo -e "HTTP/1.1 200 OK\r\n\nWLAN stats:" ; iwconfig eth1 ; /lib/atheros/wmiconfig --getTargetStats ; echo -e "\n" ;  tail -n 12 /var/log/wlanerr.log) | nc -lp 8080 | grep "User-Agent"; done &
+                    - Implemented 'quick' and 'slow' optional server launched from wlanpoke or command prompt, consisting of 3 scripts.
+
+2021.02.26.01   Enh: add a statistic for number of failed pings and longest ping failure for later transmission.
+                    -> New functions FailedPings_clear(), FailedPings_getAll(), and FailedPings_inc()
+
+2021-03-11.01   Enh: try faster reset after a shorter number of failures.
+                    -Q * number of pings to fail before quick reset (default $PINGQUICK, disable > $PINGRESET)
+
+2021.02.23.02   Enh: new command line switches to assign values to variables to replace the constants 'Failure Limit'
+                    -F * number of pings to fail before full reset (default $PINGRESET)
+
+2021.02.23.01   Enh: new command line switches to assign values to variables to replace the constants 'Seconds between Tests'
+                    -S * seconds to delay between ping tests (default $PINGSECS)
+
+
+0.6.4 2/22/2021 
+
+2021.02.22.01   Bug: -x makes things go rather awry when my SBR loses connection and everything restarts, if you run with -x
+                     - The conditionals on line 515 and 584 that test TCPLOG don't work. [[ -n TCPLOG ]] should be [[ -n "$TCPLOG" ]] two places.
+                
+                updated but not released 9/29/2020.
+2020.09.29.01   Doc: restore correct ordering of log files for upload!
+                     - cat $x.3 $x.2 $x.1 $x.0 $x > t.log   # was cat $x $x.0 $x.1 $x.2 $x.3 
+                     - Order was reversed just before release by review error.
+
+2020.09.25.02   Doc: tcp logging solution for Windows.
+                     - was done 0.6.3, 'ncat' from nmap.org, not listed.
+
+
+0.6.3 9/25/2020
+
+2020.09.24.02   Doc: Add script example for deidentification
+                     - new section "Uploading Log Files"
+                     
+2020.09.25.03   Enh: Always begin incidents with record separator in local log file.
+                     - LogFile_save "RS" adds the record separator
+                     
+2020.09.24.01   Doc: Add script example to upload local log files to desktop.
+                     - new sections "Uploading Local Log Files to the Desktop" and "Log File Analysis"
+
+2020.09.18.02   Enh: Replace ugly-looking log level conditionals with a debug echo (decho ?) function.
+                     - e.g., decho 3 "Send Successful" # seems to work.
+                     
+2020.09.17.02   Enh: Implement wlan restart before ping fails when Bit Rate falls below a specified threshold for a period of time.
+                     - Cxl, too little too late, not effective, complexity not worth a 2 second gain.
+
+2020.09.17.04   Enh: Implement automatic upload of local managed log to logging server when connected.
+                     - Cxl, local rotated or pruned log files make this less important
+
+                     
+0.6.2 9/23/2020
+
+2020.09.22.03   Bug: -r option collision 
+                    -R )    RestartNetwork
+
+2020.09.22.02   Bug: Repeated multiple entries into ERRLOGLAST if the nc transmission fails
+                     - Use DTEND variable to write only one recovery entry to ERRLOGLAST
+
+2020.09.22.01   Bug: Link Statistics preceeds failure incident in log file. nc log file correct.
+                     This occurs because the statistics are saved immediately to the log file, but the
+                     failure and reconnection report are saved only after reconnection...
+                     - Split these. Save the failure report immediately to log file, reconnect saved when reconnected.
+
+
+0.6.1 9/22/2020
+
+2020.09.22.04   Doc: new "Modifying the Script" section
+                    - discussion of default values, and hard-coded constants,
+                    - paragraph on serial connection for development
+
+2020.09.22.02   Doc: Fix minor help and documentation issues.
+                    - several changes.
+
+2020.09.22.01   Enh: Add version info to -h help.
+                    - echo " -h   help and version ($Version)"
+
+
+0.6.0 9/21/2020
+
+2020.09.21.03   Enh: Adopt version number 0.6.0 (too many changes to 0.5.2)
+
+0.5.2 9/21/2020
+
+2020.09.21.02   Enh: add access point scan results to error logs, to test the theory that the wireless is loses the connection
+                possibly because the connected access point is not found during a periodic scan.
+
+2020.09.21.01   Enh: change options to match syslogd: sleep seconds to '-z' was -s, new log file size: -s, new max logs to keep: -b
+                Not adopt: -n Run in foreground, -S Smaller logging output, -R HOST[:PORT] Log to IP or hostname on PORT (default PORT=514/UDP)
+                -L Log locally and via network (default is network only if -R), -O FILE Log to given file (default:/var/log/messages)
+                Similar: -l N  Set local log level
+                -s SIZE Max size (KB) before rotate (default:50KB, 0=off)
+                -b N    N rotated logs to keep (default:3, max=99, 'p'=trim )
+
+2020.09.17.03   Enh: Implement actual local managed logging for local review with rotation.
+                     - see 2020.09.21.01
+                     - large change should have increased version number to 0.6.0, but did not.
+
+
+0.5.1 9/19/2020
+
+2020.09.19.10   Doc: manual.txt: ephemeral shell function pwp was pw.
+2020.09.19.09   Doc: manual.txt: tcp logging server option is -t, not -l as in versions before 0.4.1.
+2020.09.19.01   Enh: Add ping result to capture statistics.
+                     - trimmed ping result added.
+                     - needs more work.
+2020.09.19.05   Enh: Consolidate large 'case' statement to fewer lines.
+                     - done
+2020.09.19.05   Enh: Add short version string to host name id for log parsing
+                     - done e.g., "Playroom.53.051".
+2020.09.19.03   Enh: Add last byte of radio's ip address to Hostname, e.g., "Playroom.53".
+                     - done. IPLAST
+2020.09.19.07   Fnc: Handle ip auto configuration address (e.g., 169.154) to prevent bogus gateway, etc.
+                     - done. IPADDR, IPLAST
+2020.09.19.06   Enh: Implement variable size circular buffer without arrays (ash)
+                     - used 'eval' indirection to create separate variables to hold entries.
+
+
+0.5.0 9/18/2020
+
+2020.09.18.01   Enh: Pseudo circular buffer to hold relevant wlan performance data for inclusion into the PINGLOG for upload.
+                     Trim data to just the minimum to keep size low. May need data every 1 or 2 seconds.
+                     - Basic iwconfig data is collected every 2 seconds and saved in a fixed 8 slot circular buffer
+                     - The buffer is saved to the file system when the link fails.
+                     - The buffer is sent to the tcp logger when the link returns.
+                     - New -vt testing option saves the buffer every 2x10=20 seconds, for an almost complete record.
+
+
+0.4.2 9/18/2020
+
+2020.09.18.04   Doc: Correct several "history.txt" citing the wrong install directory: /etc/wlanpoke/ was /etc/
+                     Added instructions for ephemeral shell functions pw and ll
+2020.09.18.03   Bug: hard coded /etc/ in
+                    #if cat /etc/wlanerr.log | nc -w 3 $TCPLOG $TCPPORT     # 0.4.2: log no longer in /etc/, fails to send logs...!!!
+                    if cat "$ERRLOG" | nc -w 3 $TCPLOG $TCPPORT
+
+0.4.1 9/17/2020
+
+2020.09.17.12   Implement logging server hello sign-on.
+2020.09.17.11   Implement install package. NO, just a zip file.
+2020.09.17.01   Add pid file to find and kill other instances, allowing only one instance.
+                Done, let's see if it works!
+o               Initial documentation and installation info.
+o               Logging server option -t was -l. Log level option -l was -v. -v is available.
+
+0.4.0 9/17/2020
+
+o Date stamp all To Do items starting today, preface bugs with "Bug: "
+o Added GPL3 license notice. Considering MIT license.
+o Added -c option to show copyright and license notice.
+o Added -w option to specify ping time out.
+o Changed default log directory to /var/log/ from /etc/
+o Added initial SLEEP variable and -w option to delay monitering.
+o Added -s option to specify ping timeout, default 1 second.
+o Fixed bug in CheckVal to more correctly check option arguments. Could be improved.
+o Changed $LOGLEVEL comparison from string '>' to integer -gt. Should use (())?
+o Appended $PINGLOG to initial ping failure log message.
+
+
+0.3.10 9/16/2020
+
+o Separated LOGDIR from log file variables to support alternate log directories.
+o Added command line options to specify many hard coded parameters
+o Added LOGLEVEL variable and ugly LOGLEVEL comparison code to suppress or allow unwanted chatter.
+o Split out RestartNetwork function with command line option to just restart the network.
+
+
+0.2.1  9/16/2020
+
+o Added # commented statement to disable log upload to external 'nc' tcp logging server.
+o Updated logging related comments.
+
+
+0.2  9/16/2020
+
+o Added version number 0.2. Version 0.1 history lost.
+o Added incident log upload to external 'nc' tcp logging server.
+o Added ALL CAPS shell variables to replace hard coded values.
+o Added shell # comments
+o Changed dhcpc start sleep delay to 5 from 10 seconds.
+o Changed sleep delay after dhcpc launch from 5 to 1 seconds.
+o Removed commented arithmetic assignments, leaving only 'let' function, awful.
+o Get the ip of the slim server used at startup, using questionable method.
+o Get the Squeezeplay Radio name to use instead of the hostname for dhcpc, using questionable method.
+
+
+o First shell script.

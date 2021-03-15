@@ -1,0 +1,397 @@
+                wlanpoke User Manual Version 0.7.0
+
+Introduction
+
+The wlanpoke software attempts to mitigate the "Wireless Connectivity Loss" issues suffered by the current version Squeezebox Baby radio software. The software periodically tests the wireless network, and if it fails for a while, restarts the wireless system without rebooting. The resulting network outage is under a minute, which may or may not interrupt music playback for a time or until resumed.
+
+Connected ssh sessions frequently stay open during a restart.
+
+The software sends failure incident report 'logs' to a computer running netcat (nc or ncat) as a server or a similar tcp logger. This computer should have enough disk space to accommodate log files. One or multiple servers on one or more machines can be used, and the software is configured to report to one of them.
+
+Besides mitigating the wireless connectivity issue, the software instruments the radio's wireless behavior, and this data may be useful to developers troubleshooting the issues. However, you may not want that data collected and/or preserved. Fortunately, affirmative steps are required to setup and enable data logging. Also, the software has the option of disabling logging.
+
+The software is implemented as the shell script "wlanpoke.sh." plus supporting files and documentation. There is also an optional script simple 'web server' to serve statistics to a web browser.
+
+This software has been rushed together in response to an emergency of constantly failing radios. Versions have been keeping the author's 4 SB and 2 UE radios connected for 6 months as of this writing. Several users have downloaded previous versions, and they have reported that it has generally worked to keep their radios usable. This software is just a temporary partial mitigation of a serious reliability issue that has arisen during 2020. There are many un- or under-tested functions and features, multitudes of bugs, questionable methods, and coding ugliness. Please assist in pointing these out or fixing them.
+
+We hope this software will become obsolete when the root causes of the unreliability have been fixed. In the mean time, your kind suggestions and improvements are appreciated. Please feel free to modify and adapt the scripts for your own purposes. And please feel free to join the effort to find real lasting solutions to this issue.
+
+Please address your responses to the slimdevices forum.
+
+
+Usage
+
+For normal usage, this script is launched at boot up by an entry in the rcS.local file. It can be launched at a shell prompt:
+
+  /etc/wlanpoke.sh &
+
+or
+
+  /etc/init.d/rcS.local
+
+to launch it as it would be at boot-up.
+
+
+If you don't want to include wlanpoke.sh in the boot up sequence, you may want to enjoy or suppress terminal chatter by setting a higher or lower log level of over 3 for more or perhaps under 3 for less. Log level 8 (-l 8) is the most verbose.
+
+The software will try to send messages to a logging server, by default the computer running Logitech Media Server (LMS) on the default port (1121). If you are running the logging server on another machine, change the (-t) option to the server ip address and possibly the (-p) option to the server ip port.
+
+
+Logging Server
+
+The software doesn't keep lengthy logs on the radio, which has very limited storage. Instead, it sends incident information to a reliably connected machine with sufficient storage. Regrettably, the radio 'nc' app cannot send reports to a syslog server.
+
+For Windows, keep reading, then see below. The simplest solution is to run netcat (nc) from a linux shell, e.g., 
+
+nc -l -k -p 1121 >> 1121.log &
+tail -f 1121.log &
+
+'nc' will (-k) keep (-l) listening on (-p) port 1121 and (>>) append what it receives to "1121.log" and (&) run in the background.
+
+'tail' will display the last 10 lines and (-f) subsequent lines as they are written from the "1121.log" file (&) in the background. Tail is better than 'tee' because you can kill the tail process without disrupting the log collection.
+
+You can launch any number of servers, each with its own port, and configure each radio to report to a specific port. If you open your firewall, these radios can be anywhere... This way, you can be entertained or appalled by each radio's struggles.
+
+Advanced: You could also pipe nc to another nc with the -u udp option to a proper syslog server. You might have to add additional fields to comply with the server.
+
+Depending on who you are and your machine, you may not be able to use the default port. In that case, use another port available to you. BTW, our apologies to any service also wanting to use port 1121. Ports 1120 to 1166 should be available at the time of this writing. According to Wikipedia, 'The range of port numbers from 1024 to 49151 (2^10 to 2^14 + 2^15 - 1) are [sic] the "registered ports."'
+
+
+Windows Logging Server
+
+Windows has a nifty netcat app (download from nmap.org) called 'ncat'. In some ways it is better than 'nc'. It launches from a command prompt or you can also make a desktop shortcut. It opens a console or command prompt window to display incoming messages, and can also send messages back (but wlanpoke will not receive anything sent). To quit ncat, close the window. To launch, enter
+
+start ncat -l -k -p 1121 -o 1121.log
+
+Add absolute paths to the 'ncat.exe' and the log file as appropriate. 'tail' is not needed for real time console viewing.
+
+
+Command Line Options
+The -h option displays the following help:
+
+Usage: wlanpoke.sh [options]
+ -x   no tcp logging
+ -t * tcp logging server ip address (default <Server>)
+ -p * tcp logging server port (default 1121)
+ -d * directory to store small logs (default /var/log)
+ -b * rotated log numbers to keep (default 3, max=99, t=trim (slow))
+ -s * max size (KB) before rotate or trim (default 50, 0=disable, >1024=size in bytes)
+ -r * log file record separator (default '-', 0=none)"
+ -i * interface (default eth1)
+ -H * hostname used by 'dhcpc' and log messages (automatic default <PlayerName>)
+ -g * gateway (ping) destination ip address (automatic default) (future)
+ -w * wait seconds for ping to succeed (default 1)
+ -W * optional web server 'quick' for status or 'slow' for more, or 'none' (default 'none')
+ -Wp * optional web server port (default 8080)
+ -S * seconds to delay between ping tests (default 2)
+ -Q * number of pings to fail before quick reset (default 3, disable > 6)
+ -F * number of pings to fail before full reset (default 6)
+ -R   restart wireless network now and exit
+ -k   kill (stop) any running wlanpoke script and exit
+ -z * sleep seconds (default 5)
+ -l * log level 0-8 verbosity (default 3)
+ -vt  enable verbose tcp logging of link quality statistics (default no)
+ -c   show copyright and license notice and exit
+ -h   help and version 0.7.0
+
+    * requires a reasonable value: no special chars, options are not validated. E.g.,
+      -s 10
+      to wait 10 seconds before starting.
+
+Option Notes:
+
+To specify command line options that rarely or never change, change the default values in the 'wlanpoke.sh' script file. Many options are completely described above and in the (-h) help.
+
+
+-b    Maximum rotated log number 0-99. Set to 'p' to enable log file trim (pruning).
+        Pruning removes the oldest entries from the log when it exceeds the maximum size. Pruning uses 'sed' to remove the first entry from the existing log file, which takes some time. Pruning is more convenient than rotation, resulting in only one easy-to-upload log file.
+        Rotation requires first concatenating backups (e.g., 'cat $x $x.0 $x.1 $x.2 $x.3 > t.log') prior to upload, briefly doubling the storage. And the log rotation itself, although infrequent, is also time consuming when it happens.
+        Fortunately, neither of these methods seems to affect the radio player, with reasonably sized log files, so far.
+
+-s    Sets the maximum log file size before trimming or rotation. Zero ('0') disables the local log file. Values over 1024 are in bytes, otherwise kilobytes.
+
+-r    Use this to separate records in the log file. Records are related log entries triggered by a disconnection. Set to 0 (zero) for no record separator.
+
+-w    If you have a really awful connection or very busy LAN, you might be able to accommodate large ping times. In this case, set the ping failure time higher, e.g., 2 seconds or more. Or, better, improve your LAN or AP.
+
+-W    This is a fun way to check up on your radio using a browser or other client. Enable the 'quick' mode to display a status web page of wireless diagnostic information, including a vector of failed pings [0..n] prior to recovery. Enable the 'slow' mode to launch a more capable server that can also parse a url, serve a file, and open the radio to who knows what. This feature has just been introduced. Feel free to modify the server scripts, see below.
+
+-Wp   specifies the port the optional server listens to. The default is 8080. You may want to change this to 80, the standard web port.
+
+-S    If you want to speed up the reset after a failure, set this to 1 second.
+
+-Q    Set this number to a number lower than the full reset value below to attempt a quick reset, or higher to disable quick reset.
+
+-F    Set this number to a lower value to more quickly completely reset the wireless for shorter interruptions.
+
+-R    Use this to simply restart the wireless network.
+
+-z    Used to delay network testing, typically during boot up. No need to pound on the network when the machine is first starting, give it some time. The software doesn't start to work until the network is first established and the gateway has been set. (was -s)
+
+-vt   Uploads link quality statistics every 20 seconds as well as after every link loss recovery. Use this to monitor a radio's link quality after the fact. Best viewed on a wide terminal window.
+
+-g    You may want to ping the LMS machine or the logging server. (Future feature. This value is currently periodically overwritten by the gateway address.)
+
+-i    If 'iwconfig' does not report 'eth1' as the wlan interface, set this value.
+
+
+For changes to other operating settings, see "Modifying the Script" below.
+
+
+Installation
+
+First, enable the radio's SSH server. On the radio, navigate:
+
+  Home | Settings | Advanced | Remote Login
+
+and enable SSH.
+
+Make a note of the radio's ip address as displayed in Home | Settings | Advanced | Diagnostics | Wireless Info.
+
+Use an ssh client (e.g., Windows 'putty') to connect to the radio's ip address. The default log in is 'root' with the password '1234'.
+
+If SSH is problematic, you can install and use a hard wired 'TTL' level serial connection to the serial adapter's COM port (e.g., COM3) at 115200 baud. You can also try an Ethernet connection, but this disables the wireless.
+
+Both methods provide an ash (like bash) shell, where you can do linux-y things, such as "ls -al" to get a directory listing.
+
+Optional, to make your life easier: the busybox shell does not contain 'alias', but you can enter shell functions, good for the current shell session:
+
+  pwp () { ps aux | grep wlan ; }
+  ll () { ls -al $* ; }
+
+- The 'pwp' shell function lists all processes containing 'wlan' to list wlanpoke processes. Type 'pwp' and press enter. 'kill' plus the pid kills any old running processes.
+- The 'll' function lists details for all files matching any arguments you give. 'll *.local' lists the files ending ".local".
+- These ephemeral functions go away after closing the session. Perhaps you can put them into root's "/root/.profile" file or the all users "/etc/profile" (no dot).
+
+
+Transfer the file. There are several ways to do this. One way is 'tftp' (Trivial FTP). If you don't have a 'tftpd' server running, they are simple to download and install. Put the downloaded wlanpoke.0.7.0.zip in the tftpd root folder, then run:
+
+tftp -g -l wlanpoke.0.7.0.zip -r wlanpoke.0.7.0.zip 192.168.0.4
+
+where "192.168.0.4" is replaced by the tftpd server's ip address.
+
+Alternatively, get it from the web:
+
+wget http://zip_file_URL -O wlanpoke.0.7.0.zip
+
+Getting it directly from the web is a bit iffy because you are not able to examine and verify the download easily using your desktop tools. The "zip_file_URL" is unknown as of this writing. You can get it from copying a web page link, and pasting the link into the wget command.
+
+Alternatively, use WinSCP:
+ 1. Download and Install WinSCP
+ 2. Launch. In login, choose protocol SCP, use correct ip address, then user: root, password: 1234
+ 3. Answer yes to the 2 questions
+ 4. Transfer the file to the /root folder
+
+
+At this point, the zip file has been downloaded into the radio. 
+
+The package is supplied in a flat zip file (no directory structure).
+
+The suggested installation directory is "/etc/wlanpoke". Create the directory:
+  mkdir /etc/wlanpoke
+
+Unzip the files into the installation directory, overwriting anthing there:
+  unzip -o wlanpoke.0.7.0.zip -d /etc/wlanpoke
+
+Check to see that the included files listed below are there. Change permissions for the shell scripts to executable:
+  chmod 755 /etc/wlanpoke/*.sh
+  chmod 755 /etc/wlanpoke/rcS.local.example
+
+(The three shell scripts ahttpd.sh, arequest.sh, and awstats.sh implement the optional web server.)
+  
+Change directory to "/etc/init.d" and look for "rcS.local".
+  cd /etc/init.d
+  ls -al
+
+If it is not there, copy the "rcS.local.example" file the directory, with a new name:
+  cp /etc/wlanpoke/rcS.local.example /etc/init.d/rcS.local
+
+Now you have an "rcS.local" file. This is called by 'rcS' at the end of boot up.
+
+Use the venerable 'vi' editor to open and examine rcS.local:
+  vi /etc/init.d/rcS.local
+
+"rcS.local" should look like or contain this (without the indents):
+  #!/bin/sh
+  /usr/bin/logger -s "starting wlanpoke.sh"
+  /etc/wlanpoke/wlanpoke.sh &
+
+Edit the "/etc/wlanpoke/wlanpoke.sh &" line to add options before '&' as necessary. Do not delete the trailing ampersand ('&') character, this runs wlanpoke in the background. Hint: 'i' enters insert mode, 'ESC' enters command mode after editing, ":w" writes the edited file, and ":q" quits vi. Isn't that fun?
+
+You may especially need to specify the logging server's ip address "-t" if it is different than the LMS server currently active when the script was launched, e.g.,
+  /etc/wlanpoke/wlanpoke.sh -t 192.168.0.4 &
+
+where "192.168.0.4" is the logging server ip address (change this!). If you are running the logging server on another machine, (e.g., a raspberry pi, or on a virtual machine) it will have a different ip address than the LMS server, which may be on some other device that cannot run 'nc'. The logging server should have a reliable (i.e., Ethernet) LAN connection.
+
+If you don't want to send messages to a logging server, use the single "-x" option to suppress them:
+  /etc/wlanpoke/wlanpoke.sh -x &
+although it is easier to simply not run a server, and let the software just not connect.
+
+You will probably want to enable one of the included simple "web servers," which are disabled by default. The are enabled by adding the "quick" or "slow" -W options:
+  /etc/wlanpoke/wlanpoke.sh -W quick &          or          /etc/wlanpoke/wlanpoke.sh -W slow &
+
+If you want to specify a port other than the default 8080, e.g., the standard www port 80, add -Wp #:
+  /etc/wlanpoke/wlanpoke.sh -W quick -Wp 80 &
+
+Don't forget to include your other options.
+
+
+Manual Launch
+
+You don't have to run at boot-up. You can ssh in and run the app manually. You would do this after hacking the wlanpoke.sh or rcS.local scripts, and testing your changes.
+  /etc/wlanpoke/wlanpoke.sh &
+
+Be sure to include your desired options before the '&'. This kills the last launched wlanpoke and runs a new process in the background.
+
+To test it as launched from boot-up, run
+  /etc/init.d/rcS.local
+
+Use 'vi' to modify the scripts. If using a Windows editor, make sure that the files are saved with unix line endings, otherwise a trailing ^M will mess up the scripts.
+
+You could define and optionally save shell functions to do the launch, e.g.:
+  wpgo () { /etc/init.d/rcS.local & }
+
+
+Modifying the wlanpoke Script
+
+You can change the defaults by editing the script. Find the shell variable and change its value. You should duplicate and comment out ('#') the line to preserve the original value for later reference. Most of these variables are at the beginning of the script. Look at the Help () function to see which variables are which. Changing these variables if helpful for those experimenting with changing other app aspects in that it facilitates testing by eliminating the typing required to launch.
+
+Although there are a boatload of command line options and defaults, many important characteristics are hard coded in the script. You may want to experiment with these to improve the wireless disconnection the recovery time. Here are some of the most obvious constants to change.
+
+PINGSECS=2
+  * This sets the interval between 'ping' connectivity checks. Overridden by the -S command line switch.
+
+PINGRESET=6
+  * This specifies the 1 or 2 second time periods (PINGSECS) to wait (2x6=12 seconds) after a ping failure before restarting the network. A ping failure may result from a network cable change, or a router reboot, or a missed packet, or a slow return > 1 second. The radio wireless system can tolerate some of this, and we don't want to restart too soon. Overridden by the -F command line switch.
+
+PINGQUICK=4
+  * This specifies the 1 or 2 second time periods (PINGSECS) to wait (2x6=12 seconds) after a ping failure before quickly resetting the network. Overridden by the -Q command line switch. Set higher to PINGRESET to disable.
+  
+RestartNetwork(): sleep 5
+  * This allows the wireless driver to restart and reconnect before launching 'dhcpc', which gives up rather quickly. The 5 second delay makes it more likely to succeed right away. You may need to adjust this higher if it takes longer for the driver to reconnect.
+
+LOGKEEP='99'
+  This rather absurd maximum value is copied from syslogd. Don't crash or constrain your radio by consuming all the storage with logs (use 'nc' instead). We don't know what a reasonable maximum log storage limit might be. It seems safe to consume a little over half of what syslogd's 'messages' files take, or ~250 KB.
+
+CB_SIZE=8
+  Sets the circular buffer size to capture 7 two-second statistics prior to a ping failure, plus the failure. You may want more, or can get by with less.
+
+Main loop: $IPFIRST == "169"
+  You may want to test the second byte "154" to be more accurate. You may also want to add another test if your radio is somehow getting a bogus IP address.
+
+Main loop: sleep 1
+  * Allows 'dhcpc' some time to obtain ip and gateway addresses, which are necessary to validate prior to checking connectivity.
+
+
+* These constants, plus the wireless system calls, determine how long it takes the script to restore wireless connectivity. Ideally, the outage time should be short enough to not cause disruption to the playing music. Longer outages may interrupt playing, and require pressing a key to dismiss a player message, which is annoying, but not the complete disaster a reboot would be. Keeping SSH sessions alive is also a consideration: outages too long will cause an SSH session to fail, losing the session, its history, and ephemeral functions and values. The current settings under the current conditions have so far kept the music playing, with only occasional SSH sessions timing out.
+
+For software modification testing, a hard wired serial connection, which survives wireless disconnection, is preferred. You can connect a serial connection plus 5 volt power (Gnd TxD RxD +5) from the radio to a reliable $4 NodeMCU wireless module programmed as a telnet to serial converter, or just run a serial cable to a 'TTL' level serial interface on a pc.
+
+Modifying the Optional Server Scripts
+
+The optional web or other server is currently implemented by three shell scripts. These scripts are enabled by the -W wlanpoke option. A detailed explanation is beyond the scope of this document.
+
+ahttpd.sh 
+  is the main script that does mostly housekeeping. The two servers are at the end. Both of them use netcat (nc) to handle incoming requests and send out responses. The quick server just responds to every connection with a web page from awstats.sh. The slow server calls arequest.sh to parse the incoming request, then passes the request to awstats.sh to generate a response. 
+
+arequest.sh 
+  parses the incoming request when using the slow server, using a very simple but slow algorithm. Or, at least, something is very slow here. Improvements would be appreciated. The parser plus the code in awstats to serve a file make for an open system. There is no code to process a PUT request, but then there is no checking for shell escapes, either. 
+
+awstats.sh
+  generates a response according to the incoming request if called from the slow web server. If called from the quick server, it sends a web page of WLAN statistics. Feel free to add or substitute the items on the status page, or disable the file serving. On the other hand, you may consider including some graphics, etc., on the page. Good luck.
+
+To test your modifications, you can launch the webserver directly from the command line (shell prompt):
+ ./ahttpd.sh (options) &
+
+where the options are:
+ -p * http server port (default 8080)
+ -F   run slower 'full server' instead of default quick server (default NOT yes)    [that means no]
+ -c   show copyright and license notice and exit
+ -h   help and version (0.1.0)
+
+All the housekeeping stuff at the start of ahttpd.sh check options and kill older processes. It contains a "killall nc" statement that may interfere with wlanpoke sending messages at that moment, but this is not critical (famous last words). That statement was included during development to get rid of hung nc sessions that tied up the desired listening port, a bug. Perhaps the bug has been fixed, and this is no longer necessary.
+ 
+
+Uploading Local Log Files to the Desktop
+
+If you are troubleshooting connection issues or modifying the script, it may be helpful to examine the local log files.
+
+If you are using pruned log files instead of rotation, just upload "/var/log/wlanerr.log".
+
+To upload rotated log files, first concatenate some or all of them into a temporary log file, upload the temporary file, then delete it. To make it easier, create a shell variable 'x' to hold the base log file name.
+  x="/var/log/wlanerr.log"
+  cat $x $x.0 $x.1 $x.2 $x.3 > t.log
+  cat $x $x.0 $x.1 > t.log
+  tftp -p -l t.log -r UpstairsSB_2020-09-24_20-40.log 192.168.0.4
+  rm t.log
+
+You could make a shell function to do this automatically, testing for each file's existence before concatenating, or just upload them all and concatenate on your pc.
+
+
+Log File Analysis
+
+You may wish to aid in troubleshooting the "Wireless Connectivity Loss" issue. We need clues. Examining your log files is a start. 
+
+Each disconnect incident is logged. The tcp logger receives the disconnect event first, followed by the reconnect event, and then 8 status snapshots 2 seconds apart ending with the disconnect snapshot. The local log file '/var/log/wlanerr' and its rotated backups are written in real time. Each incident begins with a record separator, then the disconnect event, 8 snapshots, and the reconnect event.
+
+The disconnect and reconnect entry includes a vector that may be helpful in setting the optional parameters -S -Q -F (see above). An example entry:
+
+Ping 2s3q6f Fails[11]: 58702 198 3 95 5 67 5 18 0 0
+(--- array index ----      0   1 2  3 4  5 6  7 8 9 )
+
+In this example, the -S, -Q, and -F settings were the default 2, 3, and 6, respectively.
+
+By far, the pings succeed with zero intervening failures, so the [0] number is large (58702). This radio had its own recovery with 198 one-ping failures and 3 two-ping failures. In earlier tests, radios suffering 3 ping failures did not recover on their own (the [3] slot showed zero events), so the default quick limit was set at 3. When the quick limit [3] or full limit [7] was reached, the software recorded this, even though this was not a recovery. This was done to see whether the quick method worked or not. If the quick method worked quickly enough, there would not be an increment to the full counter. The full [7] slot indicates either a recovery or a full reset. Recoveries from a full reset would be shown in the [1] or higher slots because the full recovery sets the failed ping counter to 1.
+
+Here the quick limit [3] value was 95. The software did a quick reset to the WLAN (by reassociating with the access point). There were 5, 67, and 5 cases of the quick reset restoring connectivity after an additional 1, 2, and 3 trials, respectively. There may have been recovery after 4 trials, but that information is obscured because the full limit slot would also increment as the reset is started. As mentioned earlier, recovery from the full reset would be shown in the [1] plus slots. We expect the sum of the entries above the quick reset limit to equal the count at that limit (95 = 5+67+5+18).
+
+In this example, the radio recovered from a ping loss on its own at least 198+3-18=183 times. These likely would not be noticed. It recovered from the quick reset at least 5+67+5=77 times. It may have recovered additionally some portion of 18 times, as well. This example suggests that the quick reset method is a valuable addition to the script. 
+
+To derive the outage time, subtract the "ping ok" time (first entry) from first fail time (second time). The result is within a few seconds. This is the network connectivity outage, but the player will take some additional time to reestablish a failed connection, so the total interruption is longer.
+
+
+The radio has its hands full producing these log entries. Analysis is the job of the desktop or server. Besides the status information itself, important statistics may be helpful, including: 
+o Disconnects vs time of day (TOD), and day of week (DOW). Is there any pattern?
+o Disconnect duration vs TOD and DOW.
+o Disconnects per DOW.
+o Disconnects vs radio.
+o Disconnects vs each radio's connected access point.
+o Disconnects vs scanned access points (scan_results) could show nearby possibly rogue access points, or strong neighbor WiFi signals.
+o Disconnects vs devices connected to the LAN (local area network).
+
+A python or other app to analyze these logs would be helpful. Care to write one? You can check out one user’s analyzer at:
+ https://github.com/castorfou/squeezebox_wlanpoke_plot
+
+
+In addition, it may be helpful to add a network connection logger to log LAN connects and disconnects, and connected devices scanner to keep a chronological log file. For Windows, the Nirsoft utilities 'NetworkConnectLog' and 'Wireless Network Launcher" are very handy. The useful nmap.org app 'Nmap' and its GUI version 'Zenmap' might be helpful with LAN monitoring.
+
+
+Uploading Log Files
+
+You may choose to upload your log file(s) to a forum or other location. If so, you may want to de-identify (remove identifying information) from the file before uploading. The 'sed' stream editor is convenient for this purpose. Create a 'sed' command line including all the word pair patterns you wish to rename. This line may become long, and you may want to split it into several separate commands. 
+
+Here is one (with the original identifiers themselves de-identified!) example:
+
+sed 's/Rooster/Radio1/g;s/Chicken/Radio2/g;s/Plaza/Radio3/g;s/Forest/Radio4/g;s/Desert/Radio5/g;s/Marsh/Radio6/g;s/Garden/Radio7/g;s/HomeAC/AP1/g;s/HomeG/AP2/g;s/.1.2/.0.1/g;s/.1.1/.0.1/g;s/\.1\(.\)_/.0\1_/g' t1121.log > t1121_did.log
+
+With 7 radios (1 is missing...) and 2 access points, the line is quite long. The radio names, access point names, and ip addresses are changed in a consistent way, helpful for subsequent uploads. A semicolon (';') separates each match. Of course, upload only the "t1121_did.log"!
+
+Compress the resulting file using the very common zip deflate method. A separate "LAN.txt" file listing your wireless access point(s) and router make(s), model(s), and version(s) would be very helpful to identify problematic access points and routers.
+
+Do not upload an uncompressed log file to a forum! It is ok to include a small snippet in a forum post, but please do not "junk up" a forum topic with gibberish log entries. Snippets should be shortened by replacing unimportant information with ellipses ("...") (pl of ellipsis).
+
+
+
+Included Files
+
+wlanpoke.sh         the ash shell script
+manual.txt          this user and installation manual
+rcS.local.example   example rcS.local script
+ahttpd.sh           optional web server script
+arequest.sh         used by the slow web server to parse requests
+awstats.sh          generates a web page for the optional server
+history.txt         To Do and history (change log)
+gpl3.txt            Short version of GPL3 license
+
+end
+
