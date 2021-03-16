@@ -6,7 +6,7 @@
 #
 # This program is free software under GPL3 as stated in gpl3.txt, included.
 
-Version="0.1.0 3/15/2021"
+Version="0.1.1 3/15/2021"
 
 echo -e "HTTP/1.1 200 OK\r"
 echo "Content-type: text/html"
@@ -27,5 +27,5 @@ else
   cat /var/log/fping.txt
   echo "</pre><h4>ar6002 chip statistics</h4><pre>" 
   /lib/atheros/wmiconfig --getTargetStats 
-  echo -e "</pre>\r\n</body><html>"
+  echo -e "</pre>\r\n</body></html>"
 fi
