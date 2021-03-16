@@ -4,7 +4,7 @@
 #
 # This program is free software under GPL3 as stated in gpl3.txt, included.
 
-Version="0.7.0 3/15/2021"
+Version="0.7.1 3/16/2021"
 
 LOGDIR="/var/log/"      # directory to store 'logs'
 GWTXT="wgw.txt"         # where to write router's gateway ip or /dev/null
@@ -134,8 +134,8 @@ KillApp () {
     then
       PID=`cat "$PIDFILE"`
       echo "Killing process $PID"
-      kill -TERM '-'$PID        # kill child processes, too
-
+      #kill -TERM '-'$PID       # 0.7.0 kill child processes, too
+      kill -TERM $PID        	# 0.7.1 busybox CANNOT kill child processes, too
       # Wait until app is dead
       kill -0 $PID >/dev/null 2>&1
     # while [ $? == 0 ]; do
@@ -273,11 +273,16 @@ echo "$PID" > $PIDFILE
   echo "Running as $PID"
 # fi
 
+# 0.7.1 had better change directory to the application folder to find those ./ files.
+echo "$0  $APPDIR" `pwd`
+cd "$APPDIR"
+#pwd
+
 # 0.7.0: launch optional server (e.g., for web) if requested. (hard coded)
 if [[ "$WSERVER" == "quick" ]] ; then
-  ./ahttpd.sh -p $WSERVERPORT &
+  "$APPDIR/ahttpd.sh" -p $WSERVERPORT &
 elif [[ "$WSERVER" == "slow" ]] ; then
-  ./ahttpd.sh -F -p $WSERVERPORT &
+  "$APPDIR/ahttpd.sh" -F -p $WSERVERPORT &
 fi
 
 
@@ -607,7 +612,7 @@ FailedPings_save() {
   echo "Ping" "$PINGSECS""s$PINGQUICK""q$PINGRESET""f Fails[$PINGLIST]: $outP" > $FPINGLOG
 }
 FailedPings_save
-cat $FPINGLOG
+decho 5 `cat $FPINGLOG`
 
 FailedPings_inc () {
   local R=fp$1
@@ -750,8 +755,8 @@ while true; do
       UploadStats
     fi
 
-    FailedPings_save        # 0.7.0 for http display
-    cat $FPINGLOG           # for initial testing.
+    FailedPings_save        		# 0.7.0 for http display
+	decho 5 `cat $FPINGLOG`			# 0.7.1: only if high debug level
     # the trim or prune method may require repeated calls.
     if [[ "$LOGKEEP" == "p" ]] ; then
       LogFile_limit

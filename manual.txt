@@ -1,4 +1,4 @@
-                wlanpoke User Manual Version 0.7.0.1
+                wlanpoke User Manual Version 0.7.1
 
 Introduction
 
@@ -18,6 +18,8 @@ We hope this software will become obsolete when the root causes of the unreliabi
 
 Please address your responses to the slimdevices forum.
 
+Note: the github download system creates a zip file containing a folder with the same name as the zip file name. This is no longer a flat file, and, when unzipped, deposits the software into a sub folder named for the version. The contents of this sub folder must be copied to the installation folder, which is a step that was not described in the original instructions.
+
 
 Usage
 
@@ -35,6 +37,27 @@ to launch it as it would be at boot-up.
 If you don't want to include wlanpoke.sh in the boot up sequence, you may want to enjoy or suppress terminal chatter by setting a higher or lower log level of over 3 for more or perhaps under 3 for less. Log level 8 (-l 8) is the most verbose.
 
 The software will try to send messages to a logging server, by default the computer running Logitech Media Server (LMS) on the default port (1121). If you are running the logging server on another machine, change the (-t) option to the server ip address and possibly the (-p) option to the server ip port.
+
+
+Web Page
+
+If you have enabled the optional 'web' server, you can view a status page and more from your browser (e.g., firefox). The default URL is:
+
+  http://<radio_ip_address>:<port>
+
+where you substitute your radio's ip address (or host name, if that works on your LAN) followed by a colon (':') then the port number (default 8080). For example (change the ip address):
+
+  http://192.168.0.55:8080
+  
+This will display a Wireless LAN status page. 
+
+There are two versions of the optional web server, so-called 'quick' and 'slow' versions. These are disabled by default, you must add an option to the wlanpoke launch command to enable them, see below. 
+
+The 'quick' server responds quite quickly and displays only the status page, however, the display is out of date, and you should refresh the page to get more up-to-date information. That may not be so 'quick' after all.
+
+The 'slow' server takes a few seconds to run code to parse the URL. You can display files in the installation folder, and do perhaps other mischief. Because of this, the slow server is not the default.
+
+You can change what the page displays by editing the script that makes the page, see below.
 
 
 Logging Server
@@ -92,7 +115,7 @@ Usage: wlanpoke.sh [options]
  -l * log level 0-8 verbosity (default 3)
  -vt  enable verbose tcp logging of link quality statistics (default no)
  -c   show copyright and license notice and exit
- -h   help and version 0.7.0
+ -h   help and version 0.7.1
 
     * requires a reasonable value: no special chars, options are not validated. E.g.,
       -s 10
@@ -163,9 +186,9 @@ Optional, to make your life easier: the busybox shell does not contain 'alias', 
 - The 'll' function lists details for all files matching any arguments you give. 'll *.local' lists the files ending ".local".
 - These ephemeral functions go away after closing the session. Perhaps you can put them into root's "/root/.profile" file or the all users "/etc/profile" (no dot).
 
-Of course, you must have already downloaded the zip file so that you can read this manual. Transfer the file. There are several ways to do this. One way is 'tftp' (Trivial FTP). If you don't have a 'tftpd' server running, they are simple to download and install. Put the downloaded wlanpoke.0.7.0.zip in the tftpd root folder, then run:
+Of course, you must have already downloaded the zip file so that you can read this manual. Transfer the file. There are several ways to do this. One way is 'tftp' (Trivial FTP). If you don't have a 'tftpd' server running, they are simple to download and install. Put the downloaded wlanpoke-0.7.1.zip in the tftpd root folder, then run:
 
-tftp -g -l wlanpoke.0.7.0.zip -r wlanpoke.0.7.0.zip 192.168.0.4
+tftp -g -l wlanpoke-0.7.1.zip -r wlanpoke-0.7.1.zip 192.168.0.4
 
 where "192.168.0.4" is replaced by the tftpd server's ip address.
 
@@ -180,16 +203,16 @@ At this point, the zip file has been downloaded into the radio.
 The suggested installation directory is "/etc/wlanpoke". Create the directory:
   mkdir /etc/wlanpoke
 
-Regrettably, there are several versions of the release zip file: a simple flat file (no directory structure) with the file name wlanpoke.0.7.0.zip, and two from the github site that have different naming conventions (e.g., wlanpoke-0.7.0.zip), which duplicate the file name in an included folder, requiring an extra step.
+Regrettably, there are several versions of the release zip file: a simple flat file (no directory structure) with the file name wlanpoke.0.7.1.zip (note the period instead of hyphen), and two from the github site that have different naming conventions (e.g., wlanpoke-0.7.1.zip or wlanpoke-main.zip), which duplicate the file name in an included folder, requiring an extra step.
 
 Unzip the files into the installation directory, overwriting anything there:
-  unzip -o wlanpoke.0.7.0.zip -d /etc/wlanpoke
+  unzip -o wlanpoke-0.7.1.zip -d /etc/wlanpoke
 
 See if the zip file had an included folder:
   ls -al /etc/wlanpoke
 
 If you see a folder with the same name as the zip file, that folder contains the new software. Copy or move the contents of that folder to the installation folder, overwriting any existing files:
-  mv -f /etc/wlanpoke/wlanpoke-0.7.0/* /etc/wlanpoke
+  mv -f /etc/wlanpoke/wlanpoke-0.7.1/* /etc/wlanpoke
 
 Check again to see that the included files listed below are there:
   ls -al /etc/wlanpoke
@@ -229,7 +252,7 @@ If you don't want to send messages to a logging server, use the single "-x" opti
 although it is easier to simply not run a server, and let the software just not connect.
 
 You will probably want to enable one of the included simple "web servers," which are disabled by default. The are enabled by adding the "quick" or "slow" -W options:
-  /etc/wlanpoke/wlanpoke.sh -W quick &          or          /etc/wlanpoke/wlanpoke.sh -W slow &
+  /etc/wlanpoke/wlanpoke.sh -W quick &    or     /etc/wlanpoke/wlanpoke.sh -W slow &
 
 If you want to specify a port other than the default 8080, e.g., the standard www port 80, add -Wp #:
   /etc/wlanpoke/wlanpoke.sh -W quick -Wp 80 &

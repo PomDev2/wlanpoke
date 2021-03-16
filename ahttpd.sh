@@ -1,12 +1,12 @@
 #!/bin/sh
 # Simple web server for wlan and 'wlanpoke' statistics
 # Copyright (C) 2021 POMdev
-# Derived from several web sources and wlanpoke, 
+# Derived from several web sources and wlanpoke,
 #   see "https://stackoverflow.com/questions/16640054/minimal-web-server-using-netcat"
 #
 # This program is free software under GPL3 as stated in gpl3.txt, included.
 
-Version="0.1.0 3/15/2021"
+Version="0.1.1 3/16/2021"
 
 QUICKSVR="yes"          # set yes to enable periodic transmission of link statistics (0.5.0)
 TCPPORT="8080"          # 1121 is default
@@ -38,7 +38,7 @@ while [ "$#" -ne 0 ]
 do
 case $1 in
         -p )    CheckVal $1 $2  ; shift ;   TCPPORT="$1"    ;;
-        -F )    QUICKSVR="no"						;;
+        -F )    QUICKSVR="no"                       ;;
         -c )    cat "$APPDIR"/gpl3.txt  ;   exit 0  ;;
         -h )    Help            ;;
         * )     echo "Unsupported argument: '"$1"'" ;   exit 1
@@ -46,24 +46,31 @@ case $1 in
     shift
 done
 
-echo "$0 $Version"
+echo "$0 $Version" `pwd`    # 0.1.1: added pwd
+cd "$APPDIR"
+#pwd
 
 # kill any previous instance (also kill any child processes)
 PIDFILE="/var/run/ahttpd.pid"     # kill or be killed, Name hard coded.
 
 KillApp () {
-  if [ -r "PIDFILE" ] ;  then
+  if [ -r "$PIDFILE" ] ;  then  # 0.1.1 missing '$', how did that happen?
     PID=`cat "$PIDFILE"`
-    echo "Killing process $PID"     
-    kill -TERM '-'$PID		# kill child processes, too
+    echo "Killing process $PID"
+    #kill -TERM '-'$PID     # DOESN'T WORK: kill child processes, too
+    kill -TERM $PID         # 0.1.1 busybox CANNOT kill child processes, too
     kill -0 $PID >/dev/null 2>&1
     rm "$PIDFILE"
   fi
 }
-                                                      
+
 # we are running now
 KillApp                         # kill any app still running
-killall nc						# stopgap: kill any rogue nc 'servers' (sorry wlanpoke if we stepped on you)
+killall nc                      # stopgap: kill any rogue nc 'servers' (sorry wlanpoke if we stepped on you)
+killall cat                     # 0.1.1: stopgap: kill any rogue cat pipe users
+export WLPIPENAME="wlpipe"
+rm -f $WLPIPENAME
+
 # we are the new app process
 PID=$$                          # not $!
 echo "$PID" > $PIDFILE
@@ -72,10 +79,8 @@ if [[ "$QUICKSVR" == "yes" ]] ; then
   while true; do ./awstats.sh | nc -lp $TCPPORT; done
 else
   # potential 'full service' web server uses 3 scripts, 4 processes: this main controller, a request parser, and one (or more) content generators.
-  export WLPIPENAME="wlpipe"
-  rm -f $WLPIPENAME
   mkfifo $WLPIPENAME
-  trap "rm -f out" EXIT
+  trap "rm -f $WLPIPENAME" EXIT
   while true
   do
     cat $WLPIPENAME | nc -lp $TCPPORT | ./arequest.sh

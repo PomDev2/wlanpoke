@@ -2,6 +2,7 @@
 
 To Do:
 
+2021-03-16.03   Bug: 'quick' web server serves out of data pages.
 
 2021.02.23.03   Enh: new command line switches to assign values to variables to replace the constants 'Restart Wait Seconds'
 
@@ -36,6 +37,24 @@ To Do:
 
 
 History:
+
+
+0.7.1 03/16/2021
+
+
+2021-03-16.05   Bug: Launching wlanpoke with the web server option multiple times caused program loops.
+					-> the busybox kill command does not accept the negative PID to kill a process and its dependents. Removed the '-' from $PID
+					-> ahttpd.sh: added killall cat to the killall nc stopgap measures
+
+2021-03-16.04   Enh: Speed up the 'slow' web server, it is too slow.
+					-> rearranged the program flow to launch a response more quickly, 
+					removed some unnecessary steps. Better.
+
+2021-03-16.02   Bug: web server does not work correctly.
+					-> not setting the current directory to the installation folder, fixed.
+
+2021-03-16.01   Bug: instructions do not handle non-flat zip files (e.g., from github) correctly
+					-> added additional steps and a note at the top of manual.txt
 
 
 0.7.0 03/15/2021
