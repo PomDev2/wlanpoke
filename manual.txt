@@ -1,4 +1,4 @@
-                wlanpoke User Manual Version 0.7.0
+                wlanpoke User Manual Version 0.7.0.1
 
 Introduction
 
@@ -163,18 +163,11 @@ Optional, to make your life easier: the busybox shell does not contain 'alias', 
 - The 'll' function lists details for all files matching any arguments you give. 'll *.local' lists the files ending ".local".
 - These ephemeral functions go away after closing the session. Perhaps you can put them into root's "/root/.profile" file or the all users "/etc/profile" (no dot).
 
-
-Transfer the file. There are several ways to do this. One way is 'tftp' (Trivial FTP). If you don't have a 'tftpd' server running, they are simple to download and install. Put the downloaded wlanpoke.0.7.0.zip in the tftpd root folder, then run:
+Of course, you must have already downloaded the zip file so that you can read this manual. Transfer the file. There are several ways to do this. One way is 'tftp' (Trivial FTP). If you don't have a 'tftpd' server running, they are simple to download and install. Put the downloaded wlanpoke.0.7.0.zip in the tftpd root folder, then run:
 
 tftp -g -l wlanpoke.0.7.0.zip -r wlanpoke.0.7.0.zip 192.168.0.4
 
 where "192.168.0.4" is replaced by the tftpd server's ip address.
-
-Alternatively, get it from the web:
-
-wget http://zip_file_URL -O wlanpoke.0.7.0.zip
-
-Getting it directly from the web is a bit iffy because you are not able to examine and verify the download easily using your desktop tools. The "zip_file_URL" is unknown as of this writing. You can get it from copying a web page link, and pasting the link into the wget command.
 
 Alternatively, use WinSCP:
  1. Download and Install WinSCP
@@ -182,18 +175,26 @@ Alternatively, use WinSCP:
  3. Answer yes to the 2 questions
  4. Transfer the file to the /root folder
 
-
 At this point, the zip file has been downloaded into the radio. 
-
-The package is supplied in a flat zip file (no directory structure).
 
 The suggested installation directory is "/etc/wlanpoke". Create the directory:
   mkdir /etc/wlanpoke
 
-Unzip the files into the installation directory, overwriting anthing there:
+Regrettably, there are several versions of the release zip file: a simple flat file (no directory structure) with the file name wlanpoke.0.7.0.zip, and two from the github site that have different naming conventions (e.g., wlanpoke-0.7.0.zip), which duplicate the file name in an included folder, requiring an extra step.
+
+Unzip the files into the installation directory, overwriting anything there:
   unzip -o wlanpoke.0.7.0.zip -d /etc/wlanpoke
 
-Check to see that the included files listed below are there. Change permissions for the shell scripts to executable:
+See if the zip file had an included folder:
+  ls -al /etc/wlanpoke
+
+If you see a folder with the same name as the zip file, that folder contains the new software. Copy or move the contents of that folder to the installation folder, overwriting any existing files:
+  mv -f /etc/wlanpoke/wlanpoke-0.7.0/* /etc/wlanpoke
+
+Check again to see that the included files listed below are there:
+  ls -al /etc/wlanpoke
+  
+Change permissions for the shell scripts to executable:  
   chmod 755 /etc/wlanpoke/*.sh
   chmod 755 /etc/wlanpoke/rcS.local.example
 
