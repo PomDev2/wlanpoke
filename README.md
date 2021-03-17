@@ -1,7 +1,7 @@
 # wlanpoke
 Mitigate Wireless Connectivity Loss in Squeezebox Radios
 
-Version 0.7.0.1
+Version 0.7.1
 
 Introduction
 
@@ -21,4 +21,4 @@ We hope this software will become obsolete when the root causes of the unreliabi
 
 Please address your responses to the slimdevices forums https://forums.slimdevices.com/showthread.php?109953-WiFi-connection-unstable-lost-on-three-Radios or https://forums.slimdevices.com/showthread.php?111663-Community-Build-Radio-Firmware
 
-Note: the github download system creates a zip file containing a folder with the same name as the zip file name. This is no longer a flat file, and, when unzipped, deposits the software into a sub folder named for the version. The contents of this sub folder must be copied to the installation folder, which is a step that was not described in the 0.7.0 manual.txt instructions. A new version (0.7.0.1 and so forth) of manual.txt, which contains the additional instructions, is here in the main branch. Download this as well. Good luck!
+Note: the github download system creates a zip file containing a folder with the same name as the zip file name. This is no longer a flat file, and, when unzipped, deposits the software into a sub folder named for the version. The contents of this sub folder must be copied to the installation folder, which is a step that was not described in the original manual.txt instructions. New versions of this file, with higher minor numbers, are placed in the main branch as they are written, and may be helpful. Good luck!
