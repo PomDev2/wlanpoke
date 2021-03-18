@@ -4,7 +4,7 @@
 #
 # This program is free software under GPL3 as stated in gpl3.txt, included.
 
-Version="0.7.2 3/17/2021"
+Version="0.7.2 3/18/2021"
 
 LOGDIR="/var/log/"      # directory to store 'logs'
 GWTXT="wgw.txt"         # where to write router's gateway ip or /dev/null
@@ -135,7 +135,7 @@ KillApp () {
       PID=`cat "$PIDFILE"`
       echo "Killing process $PID"
       #kill -TERM '-'$PID       # 0.7.0 kill child processes, too
-      kill -TERM $PID        	# 0.7.1 busybox CANNOT kill child processes, too
+      kill -TERM $PID           # 0.7.1 busybox CANNOT kill child processes, too
       # Wait until app is dead
       kill -0 $PID >/dev/null 2>&1
     # while [ $? == 0 ]; do
@@ -151,7 +151,7 @@ ResetQuick() {                          # 0.7.0
     echo $DTQRST "Resetting wlan..."
     wpa_cli reassociate
     DTEND=`date -Iseconds`
-    echo $DTEND "Waiting for successful ping..."
+    echo $DTEND "Quick: waiting for successful ping..."
 }
 
 RestartNetwork() {
@@ -162,7 +162,7 @@ RestartNetwork() {
     echo "Restarting dhcp"
     udhcpc -R -a -p/var/run/udhcpc.eth1.pid -b --syslog -ieth1 -H$HOSTNAME -s/etc/network/udhcpc_action
     DTEND=`date -Iseconds`
-    echo $DTEND "Waiting for successful ping..."
+    echo $DTEND "Full: waiting for successful ping..."
 }
 
 # Override the defaults with the command line arguments, if any.
@@ -181,8 +181,8 @@ case $1 in
         -H )    CheckVal $1 $2  ;   shift   ;   HOSTNAME="$1"   ;;
         -g )    CheckVal $1 $2  ;   shift   ;   GATEWAY="$1"    ;;
         -w )    CheckVal $1 $2  ;   shift   ;   PINGWAIT="$1"   ;;
-        -W )    CheckVal $1 $2  ;   shift   ;   WSERVER="$1"    ;;    # 0.7.0    
-        -Wp )   CheckVal $1 $2  ;   shift   ;   WSERVERPORT="$1" ;;   # 0.7.0    
+        -W )    CheckVal $1 $2  ;   shift   ;   WSERVER="$1"    ;;    # 0.7.0
+        -Wp )   CheckVal $1 $2  ;   shift   ;   WSERVERPORT="$1" ;;   # 0.7.0
         -S )    CheckVal $1 $2  ;   shift   ;   PINGSECS="$1"   ;;    # 0.7.0
         -Q )    CheckVal $1 $2  ;   shift   ;   PINGQUICK="$1"  ;;    # 0.7.0
         -F )    CheckVal $1 $2  ;   shift   ;   PINGRESET="$1"  ;;    # 0.7.0
@@ -205,6 +205,7 @@ FPINGLOG=${LOGDIR}$FPINGLOG     # store results of failed pings (0.7.0)FPINGLOG=
 ERRLOG=${LOGDIR}$ERRLOG
 STATLOG=${LOGDIR}$STATLOG
 ERRLOGLAST=$ERRLOG".txt"        # 0.5.2: last error report, not a real log. Real log is created if tcp logger is disabled.
+LOGRECVY=$ERRLOGLAST".2nd"      # 0.7.2: moved to assign only once
 
 # entry in BYTES if over 1 MB. Sounds backwards, but make devastating errors more difficult.
 if [[ "$LOGMAX" -le 1024 ]] ; then
@@ -224,7 +225,7 @@ decho 2 "wlanpoke" $Version
 if [[ "$LOGLEVEL" -gt 3 ]] ; then
   echo "Host name is" $HOSTNAME          # for debugging
   echo "Server is" $SERVER
-  echo 'Logging' to: $GWTXT $PINGLOG $ERRLOG " and last report to " $ERRLOGLAST
+  echo 'Logging' to: $GWTXT $PINGLOG $ERRLOG " and last report to " $ERRLOGLAST " and " $LOGRECVY
   if [[ -n "$TCPLOG" ]] ; then
     echo "Sending to tcp logging server $TCPLOG port $TCPPORT"
   else
@@ -421,10 +422,12 @@ LogFile_save () {
     # append the current error report, or the argument if any
     # append the current error report to the log file, but first, a delimiter, unless the log is new.
     if [[ -z "$1" ]] ; then
+      decho 5 "Saving $ERRLOGLAST to $ERRLOG"               # 0.7.2: debug this... cat $ERRLOGLAST
       cat "$ERRLOGLAST" >> $ERRLOG
     elif [[ "$1" == "RS" ]] ; then              # 0.6.2: begin with record separator (when requested)
       printf "%s\n" $LOGDELIM >> $ERRLOG        # printf supports additional "\n" in LOGDELIM if desired.
     elif [[ -r "$1" ]] ; then                   # 0.7.2: was -f pass any file name, and if it can be read, cat it
+      decho 5 "Saving $1 to $ERRLOG"            # 0.7.2: debug this...  cat $1
       cat "$1" >> $ERRLOG
     else
       echo "$@" >> $ERRLOG
@@ -433,6 +436,7 @@ LogFile_save () {
 }
 
 # say hello to the log
+LogFile_save "RS"                               # 0.7.2: include a separator
 LogFile_save `date -Iseconds` "$HOSTNAME.$IPLAST"_"$VerSign wlanpoke $PID at uptime:" `uptime`
 
 # -----------------------------------------
@@ -549,7 +553,7 @@ SaveStats () {
   echo $outA >> $STATLOG
   IFS=$oldIFS
 
-  LogFile_save "$STATLOG"       # save a real log file.
+  LogFile_save $STATLOG             # 0.7.2: try removing quoites.. save a real log file.
 }
 
 UploadStats () {
@@ -564,10 +568,10 @@ UploadStats () {
 
 # go well beyond the full reset limit.
 PINGLIST=$PINGRESET
-let "PINGLIST=PINGRESET+3"			# 0.7.2 make space for separate counters for quick and reset to remove them from failed pings.
-# 0.7.2 move the counters to the end of the failed ping list. 
-PINGLFULL=$PINGLIST					# 0.7.2 last entry
-PINGLQUIK=$PINGLIST					# 0.7.2 next to last entry
+let "PINGLIST=PINGRESET+3"          # 0.7.2 make space for separate counters for quick and reset to remove them from failed pings.
+# 0.7.2 move the counters to the end of the failed ping list.
+PINGLFULL=$PINGLIST                 # 0.7.2 last entry
+PINGLQUIK=$PINGLIST                 # 0.7.2 next to last entry
 let "PINGLQUIK=PINGLFULL-1"
 
 FailedPings_clear () {
@@ -604,7 +608,7 @@ FailedPings_getAll () {
 #FailedPings_getAll ; echo $outP
 
 # store current results of failed pings to $FPINGLOG not a real log (0.7.0)
-FailedPings_save() {        
+FailedPings_save() {
   FailedPings_getAll
   # report parameters
 #  echo "Ping Secs=$PINGSECS, Quick=$PINGQUICK, Full=$PINGRESET" > $FPINGLOG
@@ -675,25 +679,24 @@ while true; do
     decho 6 $wgwSz "too small"
   elif ping -c 1 -W $PINGWAIT $GATEWAY > $PINGLOG
   then
-    # if [[ $n -gt 1 ]] ; then
-      FailedPings_inc $n            # 0.7.0: save ping statistics. 1 has additional count after reset.
-    # fi
-    DTOK=`date -Iseconds`
+    DTOK=`date -Iseconds`                           # ping succeeded.
     decho 5 $i $DTOK $GATEWAY " ping ok"
-    n=0
+    FailedPings_inc $n                              # 0.7.0: save ping statistics. 1 has additional count after reset.
+    #n=0                                            # 0.7.2: moved below so it can be reported
     if [[ -n "$DTRST" || -n "$DTQRST" ]] ; then     # 0.7.0: either one will do to send the logs after a successful ping.
       # Append to the error log.
       # 0.6.2: save the log file with first the failure, then the recovery
       # Bug: this keeps adding to the ERRLOGLAST report until the nc send is successful.
       # 0.6.2: eliminate multiple entries into ERRLOGLAST if the nc connection goes down
       if [[ -n "$DTEND" ]] ; then
-        FailedPings_save                                        # 0.7.0
         # 0.6.2: Save the log file with first the failure, then the recovery, not after stats have been saved.
-        LOGRECVY=$ERRLOGLAST".2nd"
-        # echo $DTOK $HOSTNAME.$IPLAST"_"$VerSign failed $DTNG quick $DTQRST reset $DTRST up $DTEND `iwconfig $IFACE` `cat $PINGLOG` > $LOGRECVY
-        echo $DTOK $HOSTNAME.$IPLAST"_"$VerSign failed $DTNG quick $DTQRST reset $DTRST up $DTEND `iwconfig $IFACE` `cat $FPINGLOG` > $LOGRECVY
-        # FailedPings_getAll ; echo $outP >> $LOGRECVY          # 0.7.0
-        LogFile_save $LOGRECVY									# append $LOGRECVY to the $ERRLOG log file
+        SaveStats                                               # 0.7.2: save these statistics only if we did a reset, was below after first ping failure.
+        FailedPings_save                                        # 0.7.0
+        # 0.7.2: sdd 'fails' count
+        echo $DTOK $HOSTNAME.$IPLAST"_"$VerSign failed $DTNG quick $DTQRST reset $DTRST up $DTEND `iwconfig $IFACE` fails $n `cat $FPINGLOG` > $LOGRECVY    
+        decho 5 $FPINGLOG "Recovery saved to " $LOGRECVY        # cat $FPINGLOG ; cat $LOGRECVY
+        #LogFile_save =                                         # 0.7.2 skip it. HA, HA, that's all files!!! try a single asterisk NOT period (a directory), does this work?
+        LogFile_save $LOGRECVY                                  # 0.7.2 undo: try quotes : FAILS after a few times, don't know why: append $LOGRECVY to the $ERRLOG log file
         cat $LOGRECVY >> $ERRLOGLAST
         DTEND=
       fi
@@ -705,7 +708,6 @@ while true; do
           decho 3 "Send Successful"
           DTRST=
           DTQRST=       # 0.7.0
-          #DTEND=
           UploadStats   # the large stats are uploaded after the disconnect and reset entries.
         else
           decho 3 "Send Failed"
@@ -713,11 +715,11 @@ while true; do
       else              # 0.5.2: handle no TCPLOG case: stop logging to the error log!
         DTRST=
         DTQRST=         # 0.7.0
-        #DTEND=
       fi
 
     fi
     # save the current successful ping statistics
+    n=0                 # 0.7.2 moved here so that the value can be used in reports above
     GetStats
     DTNG=
   else
@@ -726,26 +728,27 @@ while true; do
       # Start a new single incident log, don't want to fill up the flash.
       echo $DTNG $HOSTNAME.$IPLAST"_"$VerSign $GATEWAY " ping failed" `iwconfig $IFACE` > $ERRLOGLAST
       # 0.6.2: save the log file with first the failure, then the recovery
+      # However, there may not be a logged recovery, since the radio will not log a recovery unless it has done something to recover from.
       LogFile_save "RS"                 # 0.6.2: begin each disconnect event record with a separator
-      LogFile_save
+      LogFile_save                      # empty argument saves $ERRLOGLAST ...
 
       if [[ "$LOGLEVEL" -gt 3 ]] ; then
         cat $ERRLOGLAST
       fi
       # save the first unsuccessful ping statistics, and write the last statistics to a file for later upload or examination
       GetStats
-      SaveStats
+      #SaveStats                            # 0.7.2: save these statistics only if we did a reset.
     fi
     let "n=n+1"
     if [[ $n -gt $PINGRESET ]] ; then       # 0.7.0: was 6 # 2x6=12 seconds was 2x10=20 seconds
       #FailedPings_inc $n
-      FailedPings_inc $PINGLFULL			# 0.7.2: don't interfere with the failed ping count.
+      FailedPings_inc $PINGLFULL            # 0.7.2: don't interfere with the failed ping count.
       RestartNetwork
       sleep 1       # was 5
       n=1
     elif [[ $n -eq $PINGQUICK ]] ; then     # 0.7.0: new. > $PINGRESET disables ResetQuick   -ge makes a mess of the FailedPings log.
       #FailedPings_inc $n
-      FailedPings_inc $PINGLQUIK			# 0.7.2: don't interfere with the failed ping count.
+      FailedPings_inc $PINGLQUIK            # 0.7.2: don't interfere with the failed ping count.
       ResetQuick
     fi
   fi
@@ -759,8 +762,8 @@ while true; do
       UploadStats
     fi
 
-    FailedPings_save        		# 0.7.0 for http display
-	decho 5 `cat $FPINGLOG`			# 0.7.1: only if high debug level
+    FailedPings_save                # 0.7.0 for http display
+    decho 5 `cat $FPINGLOG`         # 0.7.1: only if high debug level
     # the trim or prune method may require repeated calls.
     if [[ "$LOGKEEP" == "p" ]] ; then
       LogFile_limit

@@ -48,10 +48,10 @@ If you have enabled the optional 'web' server, you can view a status page and mo
 where you substitute your radio's ip address (or host name, if that works on your LAN) followed by a colon (':') then the port number (default 8080). For example (change the ip address):
 
   http://192.168.0.55:8080
-  
-This will display a Wireless LAN status page. 
 
-There are two versions of the optional web server, so-called 'quick' and 'slow' versions. These are disabled by default, you must add an option to the wlanpoke launch command to enable them, see below. 
+This will display a Wireless LAN status page.
+
+There are two versions of the optional web server, so-called 'quick' and 'slow' versions. These are disabled by default, you must add an option to the wlanpoke launch command to enable them, see below.
 
 The 'quick' server responds quite quickly and displays only the status page, however, the display is out of date, and you should refresh the page to get more up-to-date information. That may not be so 'quick' after all.
 
@@ -64,7 +64,7 @@ Logging Server
 
 The software doesn't keep lengthy logs on the radio, which has very limited storage. Instead, it sends incident information to a reliably connected machine with sufficient storage. Regrettably, the radio 'nc' app cannot send reports to a syslog server.
 
-For Windows, keep reading, then see below. The simplest solution is to run netcat (nc) from a linux shell, e.g., 
+For Windows, keep reading, then see below. The simplest solution is to run netcat (nc) from a linux shell, e.g.,
 
 nc -l -k -p 1121 >> 1121.log &
 tail -f 1121.log &
@@ -181,9 +181,9 @@ Optional, to make your life easier: the busybox shell does not contain 'alias', 
   pwp () { ps aux | grep wlan ; }
   ll () { ls -al $* ; }
 
-- The 'pwp' shell function lists all processes containing 'wlan' to list wlanpoke processes. Type 'pwp' and press enter. 'kill' plus the pid kills any old running processes.
-- The 'll' function lists details for all files matching any arguments you give. 'll *.local' lists the files ending with ".local".
-- These ephemeral functions go away after closing the session. Perhaps you can put them into root's "/root/.profile" file or the all users "/etc/profile" (no dot).
+o The 'pwp' shell function lists all processes containing 'wlan' to list wlanpoke processes. Type 'pwp' and press enter. 'kill' plus the pid kills any old running processes.
+o The 'll' function lists details for all files matching any arguments you give. 'll *.local' lists the files ending with ".local".
+o These ephemeral functions go away after closing the session. You will save time if you put them into root's "/root/.profile" file or the all users "/etc/profile" (no dot).
 
 Of course, you must have already downloaded the zip file so that you can read this manual. Transfer the file. There are several ways to do this. One way is 'tftp' (Trivial FTP). If you don't have a 'tftpd' server running, they are simple to download and install. Put the downloaded wlanpoke-0.7.2.zip in the tftpd root folder, then run:
 
@@ -197,7 +197,7 @@ Alternatively, use WinSCP:
  3. Answer yes to the 2 questions
  4. Transfer the file to the /root folder
 
-At this point, the zip file has been downloaded into the radio. 
+At this point, the zip file has been downloaded into the radio.
 
 The suggested installation directory is "/etc/wlanpoke". Create the directory:
   mkdir /etc/wlanpoke
@@ -215,13 +215,13 @@ If you see a folder with the same name as the zip file, that folder contains the
 
 Check again to see that the included files listed below are there:
   ls -al /etc/wlanpoke
-  
-Change permissions for the shell scripts to executable:  
+
+Change permissions for the shell scripts to executable:
   chmod 755 /etc/wlanpoke/*.sh
   chmod 755 /etc/wlanpoke/rcS.local.example
 
 (The three shell scripts ahttpd.sh, arequest.sh, and awstats.sh implement the optional web server.)
-  
+
 Change directory to "/etc/init.d" and look for "rcS.local".
   cd /etc/init.d
   ls -al
@@ -289,7 +289,7 @@ PINGRESET=6
 
 PINGQUICK=4
   * This specifies the 1 or 2 second time periods (PINGSECS) to wait (2x6=12 seconds) after a ping failure before quickly resetting the network. Overridden by the -Q command line switch. Set higher to PINGRESET to disable.
-  
+
 RestartNetwork(): sleep 5
   * This allows the wireless driver to restart and reconnect before launching 'dhcpc', which gives up rather quickly. The 5 second delay makes it more likely to succeed right away. You may need to adjust this higher if it takes longer for the driver to reconnect.
 
@@ -314,11 +314,11 @@ Modifying the Optional Server Scripts
 
 The optional web or other server is currently implemented by three shell scripts. These scripts are enabled by the -W wlanpoke option. A detailed explanation is beyond the scope of this document.
 
-ahttpd.sh 
-  is the main script that does mostly housekeeping. The two servers are at the end. Both of them use netcat (nc) to handle incoming requests and send out responses. The quick server just responds to every connection with a web page from awstats.sh. The slow server calls arequest.sh to parse the incoming request, then passes the request to awstats.sh to generate a response. 
+ahttpd.sh
+  is the main script that does mostly housekeeping. The two servers are at the end. Both of them use netcat (nc) to handle incoming requests and send out responses. The quick server just responds to every connection with a web page from awstats.sh. The slow server calls arequest.sh to parse the incoming request, then passes the request to awstats.sh to generate a response.
 
-arequest.sh 
-  parses the incoming request when using the slow server, using a very simple but slow algorithm. Or, at least, something is very slow here. Improvements would be appreciated. The parser plus the code in awstats.sh to serve a file make for an open system. There is no code to process a PUT request, but then there is no checking for shell escapes, either. 
+arequest.sh
+  parses the incoming request when using the slow server, using a very simple but slow algorithm. Or, at least, something is very slow here. Improvements would be appreciated. The parser plus the code in awstats.sh to serve a file make for an open system. There is no code to process a PUT request, but then there is no checking for shell escapes, either.
 
 awstats.sh
   generates a response according to the incoming request if called from the slow web server. If called from the quick server, it sends a web page of WLAN statistics. Feel free to add or substitute the items on the status page, or disable the file serving. On the other hand, you may consider including some graphics, etc., on the page. Good luck.
@@ -333,7 +333,7 @@ where the options are:
  -h   help and version (0.1.1)
 
 All the housekeeping stuff at the start of ahttpd.sh check options and kill older processes. It contains a "killall nc" statement that may interfere with wlanpoke sending messages at that moment, but this is not critical (famous last words). That statement was included during development to get rid of hung nc sessions that tied up the desired listening port, a bug. Perhaps the bug has been fixed, and this is no longer necessary.
- 
+
 
 Uploading Local Log Files to the Desktop
 
@@ -341,26 +341,27 @@ If you are troubleshooting connection issues or modifying the script, it may be 
 
 If you are using pruned log files instead of rotation, just upload "/var/log/wlanerr.log".
 
-To upload rotated log files, first concatenate some or all of them into a temporary log file, upload the temporary file, then delete it. To make it easier, create a shell variable 'x' to hold the base log file name.
-  x="/var/log/wlanerr.log"
-  cat $x $x.0 $x.1 $x.2 $x.3 > t.log
-  cat $x $x.0 $x.1 > t.log
-  tftp -p -l t.log -r UpstairsSB_2020-09-24_20-40.log 192.168.0.4
-  rm t.log
+To upload rotated log files, first concatenate some or all of them into a temporary log file, upload the temporary file, then delete it. The included ‘uplogs.sh’ script concatenates the most recent logs to a single file and uploads it to your tftpd server with name reflecting the radio name and a timestamp:
+  /etc/wlanpoke/uplogs.sh <ipaddress>
 
-You could make a shell function to do this automatically, testing for each file's existence before concatenating, or just upload them all and concatenate on your pc.
+To avoid typing the tftpd server ip address, edit 'uplogs.sh' to change the default server address. Feel free to make other changes. To make it even easier, you can add a shell function to your profile, then just enter 'ug' (the 'ul' function name has been taken):
+  ug () { /etc/wlanpoke/uplogs.sh ; }
+
+You could save this script function (e.g., as 'uplogs.sh') to do this more easily, perhaps adding testing for each file's existence before concatenating, etc.
+
+You could also edit the awstats.sh file to do this or just return the logs to the browser given a special (e.g., 'logs') URL. You would use the 'slow' web server option to decode the URL.
 
 
 Log File Analysis
 
-You may wish to aid in troubleshooting the "Wireless Connectivity Loss" issue. We need clues. Examining your log files is a start. 
+You may wish to aid in troubleshooting the "Wireless Connectivity Loss" issue. We need clues. Examining your log files is a start.
 
-Each disconnect incident is logged. The tcp logger receives the disconnect event first, followed by the reconnect event, and then 8 status snapshots 2 seconds apart ending with the disconnect snapshot. The local log file '/var/log/wlanerr' and its rotated backups are written in real time. Each incident begins with a record separator, then the disconnect event, 8 snapshots, and the reconnect event.
+Each disconnect incident is logged. The tcp logger receives the disconnect event first, followed by the reconnect event, and then 8 status snapshots 2 seconds apart ending with the disconnect snapshot. The local log file '/var/log/wlanerr' and its rotated backups are written in real time, and log every first failed ping. First failed pings are not transmitter to the tcp logger unless the software resets the radio, and until the radio is reconnected. Each incident begins with a record separator, then the disconnect event, 8 snapshots, and the reconnect event.
 
 To derive the outage time, subtract the "ping ok" time (first entry) from the failed time (second time). The result is within a few seconds. This is the network connectivity outage, but the player will take some additional time to reestablish a failed connection, so the total interruption is longer.
 
 Here is an example recovery log entry:
-2021-03-17T20:43:38-0400 MasterSB.23_072 failed 2021-03-17T20:42:57-0400 quick 2021-03-17T20:43:04-0400 reset 2021-03-17T20:43:16-0400 up 2021-03-17T20:43:35-0400 ... 
+2021-03-17T20:43:38-0400 MasterSB.23_072 failed 2021-03-17T20:42:57-0400 quick 2021-03-17T20:43:04-0400 reset 2021-03-17T20:43:16-0400 up 2021-03-17T20:43:35-0400 ...
 
 Here, the radio failed at 20:42:57 and recovered at 20:43:38, an outage of 41 seconds. The software tried a quick reset after 7 seconds, which evidently did not work, as it performed a full reset after 19 seconds. The reset process was over after 38 seconds, and a successful ping recorded after 41 seconds.
 
@@ -368,17 +369,25 @@ Entries that recover after the quick reset do so immediately after the 7 second 
 
 The disconnect and reconnect entry includes a vector that may be helpful in setting the optional parameters -S -Q -F (see above). Here is an example entry with a footer added to aid reading:
 
-Ping 2s3q6f Fails[9]: 1910 46 1 1 1 9 0 0 15 4 0
-(--- array index ----    0  1 2 3 4 5 6 7  8 9 10 )
-(--- activity -------   ok      q     f    q f    )
+Ping 2s3q6f Fails[9]: 9687 9 0 0 0 18 0 0 19 1 0
+(--- array index ----    0 1 2 3 4  5 6 7  8 9 10 )
+(--- activity -------   ok     q      f    q f    )
 
 In this example, the -S, -Q, and -F settings were the default 2, 3, and 6, respectively. With the full reset parameter set to 6, array indexes [0 - 7] display the number of failed pings counted before the system had a successful ping. Array indexes [8] and [9] count the number of times the quick and full reset actions were performed. We would expect index [7] to be zero because the full reset also sets the failed ping counter to 1 (to keep trying), so the counter wraps from 6 to 1. Also, index [10] is zero because only some bug could increment that index.
 
-By far, the pings succeed with zero intervening failures, so the [0] number is large (1910). The radio had 15 quick and 4 full resets. The 4 full resets occurred at failed ping count 6. The recovery occurred after the failed ping counter, reset to 1, would be 1 or more. The 15 quick resets occurred when the ping counter was 3. The recovery, if it happened, would occur with 3, 4, 5, or 6 failed pings, which were [3..6] 1+1+9+0=11 times. Subtracting 11 recoveries from 15 quick resets [8] leaves 4 instances where the recovery did not occur before the full reset kicked in. This matches the 4 full reset counter [9]. The 4 full reset recoveries would be included in slots [1..6], but likely mostly in [1].
+By far, the pings succeed with zero intervening failures, so the [0] number is large (9687). The radio had 19 quick and 1 full resets. The 1 full reset occurred at failed ping count 6. The recovery occurred after the failed ping counter, reset to 1, would be 1 or more. The 19 quick resets occurred when the ping counter was 3. The recovery, if it happened, would occur with 3, 4, 5, or 6 failed pings, which were [3..6] 0+18+0+0=18 times. Subtracting 18 recoveries from 19 quick resets [8] leaves 1 instance where the recovery did not occur before the full reset kicked in. This matches the 1 full reset counter [9]. Full reset recoveries would be included in slots [1..6], but likely mostly in [1].
 
-This 46 one-ping failures must be overwhelmingly the radio recovering on its own, or perhaps a lapse in the router ping response. Pings are not guaranteed. It is unknown how many of the 2 and 3 failures include a recovery from a full reset. The full reset has delays to allow the system to recover before the tests resume, so most if not all of the recoveries should be at failed ping count 1. 
+This 9 one-ping failures must be overwhelmingly the radio recovering on its own, or perhaps a lapse in the router ping response. Pings are not guaranteed. It is unknown how many of the 2 and 3 failures include a recovery from a full reset. The full reset has delays to allow the system to recover before the tests resume, so most if not all of the recoveries should be at failed ping count 1.
 
-In this example, the radio recovered from a ping loss on its own at least 46-4=42 times. These likely would not be noticed. It recovered from the quick reset 11 times, but required the full reset 4 times. This example suggests that the quick reset method is a valuable addition to the script.
+In this example, the radio recovered from a ping loss on its own at least 9-1=8 times. These likely would not be noticed. It recovered from the quick reset 17 times, but required the full reset 1 times. This example suggests that the quick reset method is a valuable addition to the script.
+
+Here are some more examples, lined up in columns, analyze them for yourself. These are overnight figures:
+Ping 2s3q6f Fails[9]: 18262  45 0 0 0 11 0 0 11  0 0
+Ping 2s3q6f Fails[9]: 19134 179 2 0 1 61 1 0 77 14 0    (1st floor south facing, brutal!)
+Ping 2s3q6f Fails[9]:   460  20 1 0 0  3 0 0  4  1 0
+Ping 2s3q6f Fails[9]: 15851  49 0 0 1 13 2 0 20  4 0    (2nd floor)
+(--- array index ----     0   1 2 3 4  5 6 7  8  9 10 )
+(--- activity -------    ok       q      f    q  f    )
 
 
 Earlier Software Example
@@ -394,12 +403,12 @@ By far, the pings succeed with zero intervening failures, so the [0] number is l
 
 Here the quick limit [3] value was 95. The software did a quick reset to the WLAN (by reassociating with the access point). There were 5, 67, and 5 cases of the quick reset restoring connectivity after an additional 1, 2, and 3 trials, respectively. There may have been recovery after 4 trials, but that information is obscured because the full limit slot would also increment as the reset is started. As mentioned earlier, recovery from the full reset would be shown in the [1] plus slots. We expect the sum of the entries above the quick reset limit to equal the count at that limit (95 = 5+67+5+18).
 
-In this example, the radio recovered from a ping loss on its own at least 198+3-18=183 times. These likely would not be noticed. It recovered from the quick reset at least 5+67+5=77 times. It may have recovered additionally some portion of 18 times, as well. This example suggests that the quick reset method is a valuable addition to the script. 
+In this example, the radio recovered from a ping loss on its own at least 198+3-18=183 times. These likely would not be noticed. It recovered from the quick reset at least 5+67+5=77 times. It may have recovered additionally some portion of 18 times, as well. This example suggests that the quick reset method is a valuable addition to the script.
 
 
 Desktop Analysis
 
-The radio has its hands full producing these log entries. Analysis is the job of the desktop or server. Besides the status information itself, important statistics may be helpful, including: 
+The radio has its hands full producing these log entries. Analysis is the job of the desktop or server. Besides the status information itself, important statistics may be helpful, including:
 o Disconnects vs time of day (TOD), and day of week (DOW). Is there any pattern?
 o Disconnect duration vs TOD and DOW.
 o Disconnects per DOW.
@@ -417,7 +426,7 @@ In addition, it may be helpful to add a network connection logger to log LAN con
 
 Uploading Log Files
 
-You may choose to upload your log file(s) to a forum or other location. If so, you may want to de-identify (remove identifying information) from the file before uploading. The 'sed' stream editor is convenient for this purpose. Create a 'sed' command line including all the word pair patterns you wish to rename. This line may become long, and you may want to split it into several separate commands. 
+You may choose to upload your log file(s) to a forum or other location. If so, you may want to de-identify (remove identifying information) from the file before uploading. The 'sed' stream editor is convenient for this purpose. Create a 'sed' command line including all the word pair patterns you wish to rename. This line may become long, and you may want to split it into several separate commands.
 
 Here is one (with the original identifiers themselves de-identified!) example:
 
@@ -439,6 +448,7 @@ rcS.local.example   example rcS.local script
 ahttpd.sh           optional web server script
 arequest.sh         used by the slow web server to parse requests
 awstats.sh          generates a web page for the optional server
+uplogs.sh           uploads logs to a tftpd server
 history.txt         To Do and history (change log)
 gpl3.txt            Short version of GPL3 license
 
