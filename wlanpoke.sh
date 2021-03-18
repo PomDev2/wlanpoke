@@ -4,7 +4,7 @@
 #
 # This program is free software under GPL3 as stated in gpl3.txt, included.
 
-Version="0.7.1 3/16/2021"
+Version="0.7.2 3/17/2021"
 
 LOGDIR="/var/log/"      # directory to store 'logs'
 GWTXT="wgw.txt"         # where to write router's gateway ip or /dev/null
@@ -285,6 +285,8 @@ elif [[ "$WSERVER" == "slow" ]] ; then
   "$APPDIR/ahttpd.sh" -F -p $WSERVERPORT &
 fi
 
+# 0.7.2 create a version file for reading by the status web page
+echo "$HOSTNAME $0 $Version" "launched (""$WSERVER"")" `date`  > "$APPDIR"/Version
 
 IPADDR=$(wpa_cli status | grep ip_address | cut -d '=' -f2)
 # radio's ip address
@@ -412,21 +414,17 @@ LogFile_limit () {
 # LogFile_save Save a real log to ERRLOG 0.5.2 new. Optional first argument specifies what to save:
 #  (nothing) save ERRLOGLAST, "RS" record separator, FileName that file if exists, otherwise all the arguments concatenated.
 LogFile_save () {
-  # Trim the log file, if it exists, to a specified size
+  # Save a log file unless its maximum size is zero
   if [[ "$LOGMAX" -gt 0 ]] ; then
+    # Trim the log file, if it exists, to a specified size
     LogFile_limit                               # rotate or prune oldest entry if too log file too large
-    # append the current error report to the log file, but first, a delimiter, unless the log is new.
-    # 0.6.2: moved below: always begin with record separator
-    # if [[ ! -s "$ERRLOG" ]] ; then
-    #   printf "%s\n" $LOGDELIM >> $ERRLOG
-    # fi
-
     # append the current error report, or the argument if any
+    # append the current error report to the log file, but first, a delimiter, unless the log is new.
     if [[ -z "$1" ]] ; then
       cat "$ERRLOGLAST" >> $ERRLOG
     elif [[ "$1" == "RS" ]] ; then              # 0.6.2: begin with record separator (when requested)
       printf "%s\n" $LOGDELIM >> $ERRLOG        # printf supports additional "\n" in LOGDELIM if desired.
-    elif [[ -f "$1" ]] ; then                   # pass any file name, and if it exists, cat it
+    elif [[ -r "$1" ]] ; then                   # 0.7.2: was -f pass any file name, and if it can be read, cat it
       cat "$1" >> $ERRLOG
     else
       echo "$@" >> $ERRLOG
@@ -566,7 +564,11 @@ UploadStats () {
 
 # go well beyond the full reset limit.
 PINGLIST=$PINGRESET
-let "PINGLIST=PINGRESET+2"
+let "PINGLIST=PINGRESET+3"			# 0.7.2 make space for separate counters for quick and reset to remove them from failed pings.
+# 0.7.2 move the counters to the end of the failed ping list. 
+PINGLFULL=$PINGLIST					# 0.7.2 last entry
+PINGLQUIK=$PINGLIST					# 0.7.2 next to last entry
+let "PINGLQUIK=PINGLFULL-1"
 
 FailedPings_clear () {
   local i=0
@@ -690,8 +692,8 @@ while true; do
         LOGRECVY=$ERRLOGLAST".2nd"
         # echo $DTOK $HOSTNAME.$IPLAST"_"$VerSign failed $DTNG quick $DTQRST reset $DTRST up $DTEND `iwconfig $IFACE` `cat $PINGLOG` > $LOGRECVY
         echo $DTOK $HOSTNAME.$IPLAST"_"$VerSign failed $DTNG quick $DTQRST reset $DTRST up $DTEND `iwconfig $IFACE` `cat $FPINGLOG` > $LOGRECVY
-        # FailedPings_getAll ; echo $outP >> $LOGRECVY            # 0.7.0
-        LogFile_save $LOGRECVY
+        # FailedPings_getAll ; echo $outP >> $LOGRECVY          # 0.7.0
+        LogFile_save $LOGRECVY									# append $LOGRECVY to the $ERRLOG log file
         cat $LOGRECVY >> $ERRLOGLAST
         DTEND=
       fi
@@ -736,12 +738,14 @@ while true; do
     fi
     let "n=n+1"
     if [[ $n -gt $PINGRESET ]] ; then       # 0.7.0: was 6 # 2x6=12 seconds was 2x10=20 seconds
-      FailedPings_inc $n
+      #FailedPings_inc $n
+      FailedPings_inc $PINGLFULL			# 0.7.2: don't interfere with the failed ping count.
       RestartNetwork
       sleep 1       # was 5
       n=1
     elif [[ $n -eq $PINGQUICK ]] ; then     # 0.7.0: new. > $PINGRESET disables ResetQuick   -ge makes a mess of the FailedPings log.
-      FailedPings_inc $n
+      #FailedPings_inc $n
+      FailedPings_inc $PINGLQUIK			# 0.7.2: don't interfere with the failed ping count.
       ResetQuick
     fi
   fi

@@ -20,6 +20,9 @@ elif [[ -r "$trq" ]] ; then     # serve the file if it exists. To ... with the c
 else
   echo -e "<html><head><title>WLAN Statistics</title></head><body><h2>Wireless LAN Statistics</h2>\r\n"
   echo "<pre>"
+  if [[ -r "Version" ]] ; then
+    cat "Version"
+  fi
   echo `date` "(" `uptime` ")"
   echo
   iwconfig eth1

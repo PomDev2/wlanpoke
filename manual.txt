@@ -1,4 +1,4 @@
-                wlanpoke User Manual Version 0.7.1
+                wlanpoke User Manual Version 0.7.2
 
 Introduction
 
@@ -18,7 +18,7 @@ We hope this software will become obsolete when the root causes of the unreliabi
 
 Please address your responses to the slimdevices forum.
 
-Note: the github download system creates a zip file containing a folder with the same name as the zip file name. This is no longer a flat file, and, when unzipped, deposits the software into a sub folder named for the version. The contents of this sub folder must be copied to the installation folder, which is a step that was not described in the original instructions.
+Note: the github download system creates a zip file containing a folder with the same name as the zip file name. This is no longer a flat file, and, when unzipped, deposits the software into a sub folder named for the version. The contents of this sub folder must be copied to the installation folder, which is a step that was not described in the original manual.txt instructions. New versions of this file, with higher minor numbers, are placed in the github main branch as they are written, and may be helpful. Good luck!
 
 
 Usage
@@ -41,7 +41,7 @@ The software will try to send messages to a logging server, by default the compu
 
 Web Page
 
-If you have enabled the optional 'web' server, you can view a status page and more from your browser (e.g., firefox). The default URL is:
+If you have enabled the optional 'web' server, you can view a status page and more from your browser (e.g., Firefox). The status page displays a wealth of information about the radio, and you can add more. The default URL is:
 
   http://<radio_ip_address>:<port>
 
@@ -55,9 +55,9 @@ There are two versions of the optional web server, so-called 'quick' and 'slow' 
 
 The 'quick' server responds quite quickly and displays only the status page, however, the display is out of date, and you should refresh the page to get more up-to-date information. That may not be so 'quick' after all.
 
-The 'slow' server takes a few seconds to run code to parse the URL. You can display files in the installation folder, and do perhaps other mischief. Because of this, the slow server is not the default.
+The 'slow' server takes one or more seconds to run code to parse the URL. You can display files in the installation folder, and do perhaps other mischief. Because of this, the slow server is not the default.
 
-You can change what the page displays by editing the script that makes the page, see below.
+You can change what the page displays by editing the script that creates the page, see below.
 
 
 Logging Server
@@ -115,7 +115,7 @@ Usage: wlanpoke.sh [options]
  -l * log level 0-8 verbosity (default 3)
  -vt  enable verbose tcp logging of link quality statistics (default no)
  -c   show copyright and license notice and exit
- -h   help and version 0.7.1
+ -h   help and version 0.7.2
 
     * requires a reasonable value: no special chars, options are not validated. E.g.,
       -s 10
@@ -124,7 +124,6 @@ Usage: wlanpoke.sh [options]
 Option Notes:
 
 To specify command line options that rarely or never change, change the default values in the 'wlanpoke.sh' script file. Many options are completely described above and in the (-h) help.
-
 
 -b    Maximum rotated log number 0-99. Set to 'p' to enable log file trim (pruning).
         Pruning removes the oldest entries from the log when it exceeds the maximum size. Pruning uses 'sed' to remove the first entry from the existing log file, which takes some time. Pruning is more convenient than rotation, resulting in only one easy-to-upload log file.
@@ -143,9 +142,9 @@ To specify command line options that rarely or never change, change the default 
 
 -S    If you want to speed up the reset after a failure, set this to 1 second.
 
--Q    Set this number to a number lower than the full reset value below to attempt a quick reset, or higher to disable quick reset.
+-Q    Set this number to a number a few counts lower than the full reset value below to attempt a quick reset, or higher to disable quick reset.
 
--F    Set this number to a lower value to more quickly completely reset the wireless for shorter interruptions.
+-F    Set this number to a lower value to more quickly completely reset the wireless for shorter interruptions if the quick method is not effective.
 
 -R    Use this to simply restart the wireless network.
 
@@ -183,12 +182,12 @@ Optional, to make your life easier: the busybox shell does not contain 'alias', 
   ll () { ls -al $* ; }
 
 - The 'pwp' shell function lists all processes containing 'wlan' to list wlanpoke processes. Type 'pwp' and press enter. 'kill' plus the pid kills any old running processes.
-- The 'll' function lists details for all files matching any arguments you give. 'll *.local' lists the files ending ".local".
+- The 'll' function lists details for all files matching any arguments you give. 'll *.local' lists the files ending with ".local".
 - These ephemeral functions go away after closing the session. Perhaps you can put them into root's "/root/.profile" file or the all users "/etc/profile" (no dot).
 
-Of course, you must have already downloaded the zip file so that you can read this manual. Transfer the file. There are several ways to do this. One way is 'tftp' (Trivial FTP). If you don't have a 'tftpd' server running, they are simple to download and install. Put the downloaded wlanpoke-0.7.1.zip in the tftpd root folder, then run:
+Of course, you must have already downloaded the zip file so that you can read this manual. Transfer the file. There are several ways to do this. One way is 'tftp' (Trivial FTP). If you don't have a 'tftpd' server running, they are simple to download and install. Put the downloaded wlanpoke-0.7.2.zip in the tftpd root folder, then run:
 
-tftp -g -l wlanpoke-0.7.1.zip -r wlanpoke-0.7.1.zip 192.168.0.4
+tftp -g -l wlanpoke-0.7.2.zip -r wlanpoke-0.7.2.zip 192.168.0.4
 
 where "192.168.0.4" is replaced by the tftpd server's ip address.
 
@@ -203,16 +202,16 @@ At this point, the zip file has been downloaded into the radio.
 The suggested installation directory is "/etc/wlanpoke". Create the directory:
   mkdir /etc/wlanpoke
 
-Regrettably, there are several versions of the release zip file: a simple flat file (no directory structure) with the file name wlanpoke.0.7.1.zip (note the period instead of hyphen), and two from the github site that have different naming conventions (e.g., wlanpoke-0.7.1.zip or wlanpoke-main.zip), which duplicate the file name in an included folder, requiring an extra step.
+Regrettably, there are several versions of the release zip file: a simple flat file (no directory structure) with the file name wlanpoke.0.7.2.zip (note the period instead of hyphen), and two from the github site that have different naming conventions (e.g., wlanpoke-0.7.2.zip or wlanpoke-main.zip), which duplicate the file name in an included folder, requiring an extra step.
 
 Unzip the files into the installation directory, overwriting anything there:
-  unzip -o wlanpoke-0.7.1.zip -d /etc/wlanpoke
+  unzip -o wlanpoke-0.7.2.zip -d /etc/wlanpoke
 
 See if the zip file had an included folder:
   ls -al /etc/wlanpoke
 
 If you see a folder with the same name as the zip file, that folder contains the new software. Copy or move the contents of that folder to the installation folder, overwriting any existing files:
-  mv -f /etc/wlanpoke/wlanpoke-0.7.1/* /etc/wlanpoke
+  mv -f /etc/wlanpoke/wlanpoke-0.7.2/* /etc/wlanpoke
 
 Check again to see that the included files listed below are there:
   ls -al /etc/wlanpoke
@@ -254,7 +253,7 @@ although it is easier to simply not run a server, and let the software just not 
 You will probably want to enable one of the included simple "web servers," which are disabled by default. The are enabled by adding the "quick" or "slow" -W options:
   /etc/wlanpoke/wlanpoke.sh -W quick &    or     /etc/wlanpoke/wlanpoke.sh -W slow &
 
-If you want to specify a port other than the default 8080, e.g., the standard www port 80, add -Wp #:
+If you want to specify a port other than the default 8080 (e.g., the standard www port 80), add -Wp #:
   /etc/wlanpoke/wlanpoke.sh -W quick -Wp 80 &
 
 Don't forget to include your other options.
@@ -265,7 +264,7 @@ Manual Launch
 You don't have to run at boot-up. You can ssh in and run the app manually. You would do this after hacking the wlanpoke.sh or rcS.local scripts, and testing your changes.
   /etc/wlanpoke/wlanpoke.sh &
 
-Be sure to include your desired options before the '&'. This kills the last launched wlanpoke and runs a new process in the background.
+Be sure to include your desired options before the '&'. This kills the last launched wlanpoke and runs a new process in the background. The new process optionally launches a new web server, which kills any old one before starting.
 
 To test it as launched from boot-up, run
   /etc/init.d/rcS.local
@@ -319,19 +318,19 @@ ahttpd.sh
   is the main script that does mostly housekeeping. The two servers are at the end. Both of them use netcat (nc) to handle incoming requests and send out responses. The quick server just responds to every connection with a web page from awstats.sh. The slow server calls arequest.sh to parse the incoming request, then passes the request to awstats.sh to generate a response. 
 
 arequest.sh 
-  parses the incoming request when using the slow server, using a very simple but slow algorithm. Or, at least, something is very slow here. Improvements would be appreciated. The parser plus the code in awstats to serve a file make for an open system. There is no code to process a PUT request, but then there is no checking for shell escapes, either. 
+  parses the incoming request when using the slow server, using a very simple but slow algorithm. Or, at least, something is very slow here. Improvements would be appreciated. The parser plus the code in awstats.sh to serve a file make for an open system. There is no code to process a PUT request, but then there is no checking for shell escapes, either. 
 
 awstats.sh
   generates a response according to the incoming request if called from the slow web server. If called from the quick server, it sends a web page of WLAN statistics. Feel free to add or substitute the items on the status page, or disable the file serving. On the other hand, you may consider including some graphics, etc., on the page. Good luck.
 
-To test your modifications, you can launch the webserver directly from the command line (shell prompt):
+To test your modifications, you can launch the web server directly from the command line (shell prompt):
  ./ahttpd.sh (options) &
 
 where the options are:
  -p * http server port (default 8080)
  -F   run slower 'full server' instead of default quick server (default NOT yes)    [that means no]
  -c   show copyright and license notice and exit
- -h   help and version (0.1.0)
+ -h   help and version (0.1.1)
 
 All the housekeeping stuff at the start of ahttpd.sh check options and kill older processes. It contains a "killall nc" statement that may interfere with wlanpoke sending messages at that moment, but this is not critical (famous last words). That statement was included during development to get rid of hung nc sessions that tied up the desired listening port, a bug. Perhaps the bug has been fixed, and this is no longer necessary.
  
@@ -358,7 +357,33 @@ You may wish to aid in troubleshooting the "Wireless Connectivity Loss" issue. W
 
 Each disconnect incident is logged. The tcp logger receives the disconnect event first, followed by the reconnect event, and then 8 status snapshots 2 seconds apart ending with the disconnect snapshot. The local log file '/var/log/wlanerr' and its rotated backups are written in real time. Each incident begins with a record separator, then the disconnect event, 8 snapshots, and the reconnect event.
 
-The disconnect and reconnect entry includes a vector that may be helpful in setting the optional parameters -S -Q -F (see above). An example entry:
+To derive the outage time, subtract the "ping ok" time (first entry) from the failed time (second time). The result is within a few seconds. This is the network connectivity outage, but the player will take some additional time to reestablish a failed connection, so the total interruption is longer.
+
+Here is an example recovery log entry:
+2021-03-17T20:43:38-0400 MasterSB.23_072 failed 2021-03-17T20:42:57-0400 quick 2021-03-17T20:43:04-0400 reset 2021-03-17T20:43:16-0400 up 2021-03-17T20:43:35-0400 ... 
+
+Here, the radio failed at 20:42:57 and recovered at 20:43:38, an outage of 41 seconds. The software tried a quick reset after 7 seconds, which evidently did not work, as it performed a full reset after 19 seconds. The reset process was over after 38 seconds, and a successful ping recorded after 41 seconds.
+
+Entries that recover after the quick reset do so immediately after the 7 second delay to verify the outage. A 7 second delay might not be noticeable. The previous software that used only full resets took 44 seconds to recover, and there were some interruptions under some circumstances, especially in the case of synchronized radios.
+
+The disconnect and reconnect entry includes a vector that may be helpful in setting the optional parameters -S -Q -F (see above). Here is an example entry with a footer added to aid reading:
+
+Ping 2s3q6f Fails[9]: 1910 46 1 1 1 9 0 0 15 4 0
+(--- array index ----    0  1 2 3 4 5 6 7  8 9 10 )
+(--- activity -------   ok      q     f    q f    )
+
+In this example, the -S, -Q, and -F settings were the default 2, 3, and 6, respectively. With the full reset parameter set to 6, array indexes [0 - 7] display the number of failed pings counted before the system had a successful ping. Array indexes [8] and [9] count the number of times the quick and full reset actions were performed. We would expect index [7] to be zero because the full reset also sets the failed ping counter to 1 (to keep trying), so the counter wraps from 6 to 1. Also, index [10] is zero because only some bug could increment that index.
+
+By far, the pings succeed with zero intervening failures, so the [0] number is large (1910). The radio had 15 quick and 4 full resets. The 4 full resets occurred at failed ping count 6. The recovery occurred after the failed ping counter, reset to 1, would be 1 or more. The 15 quick resets occurred when the ping counter was 3. The recovery, if it happened, would occur with 3, 4, 5, or 6 failed pings, which were [3..6] 1+1+9+0=11 times. Subtracting 11 recoveries from 15 quick resets [8] leaves 4 instances where the recovery did not occur before the full reset kicked in. This matches the 4 full reset counter [9]. The 4 full reset recoveries would be included in slots [1..6], but likely mostly in [1].
+
+This 46 one-ping failures must be overwhelmingly the radio recovering on its own, or perhaps a lapse in the router ping response. Pings are not guaranteed. It is unknown how many of the 2 and 3 failures include a recovery from a full reset. The full reset has delays to allow the system to recover before the tests resume, so most if not all of the recoveries should be at failed ping count 1. 
+
+In this example, the radio recovered from a ping loss on its own at least 46-4=42 times. These likely would not be noticed. It recovered from the quick reset 11 times, but required the full reset 4 times. This example suggests that the quick reset method is a valuable addition to the script.
+
+
+Earlier Software Example
+
+You may skip this section for software prior to 0.7.2, which combined the failed pings with the reset counters, making analysis more complicated:
 
 Ping 2s3q6f Fails[11]: 58702 198 3 95 5 67 5 18 0 0
 (--- array index ----      0   1 2  3 4  5 6  7 8 9 )
@@ -371,8 +396,8 @@ Here the quick limit [3] value was 95. The software did a quick reset to the WLA
 
 In this example, the radio recovered from a ping loss on its own at least 198+3-18=183 times. These likely would not be noticed. It recovered from the quick reset at least 5+67+5=77 times. It may have recovered additionally some portion of 18 times, as well. This example suggests that the quick reset method is a valuable addition to the script. 
 
-To derive the outage time, subtract the "ping ok" time (first entry) from first fail time (second time). The result is within a few seconds. This is the network connectivity outage, but the player will take some additional time to reestablish a failed connection, so the total interruption is longer.
 
+Desktop Analysis
 
 The radio has its hands full producing these log entries. Analysis is the job of the desktop or server. Besides the status information itself, important statistics may be helpful, including: 
 o Disconnects vs time of day (TOD), and day of week (DOW). Is there any pattern?

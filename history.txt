@@ -2,9 +2,13 @@
 
 To Do:
 
+2021-03-17.04   Enh: FailedPings vector is hard to read. 
+				Add some sort of indication to FailedPings vector to identify the quick, full, quickcount, and fullcount slots.
+				Takes 4 tests.... (if elif elif elif fi) ... too much for now.
+
 2021-03-16.03   Bug: 'quick' web server serves out of data pages.
 
-2021.02.23.03   Enh: new command line switches to assign values to variables to replace the constants 'Restart Wait Seconds'
+2021.02.23.03   Enh: new command line switches to replace the constant 'Restart Wait Seconds'
 
 2020.09.19.08   Enh: Support single and double quotes in log entries.
 
@@ -39,8 +43,21 @@ To Do:
 History:
 
 
-0.7.1 03/16/2021
+0.7.2 03/17/2021
 
+2021-03-17.01   Enh: Improve the web status report, better process list, include version numbers
+					-> Initial host and version info, process list shows hierarchy, failed pings are separated
+
+2021-03-17.02   Bug: Recovery report is not written to the log file, but is transmitted to ncat
+					-> elif [[ -r "$1" ]] ; then  # 0.7.2: was -f pass any file name, and if it can be read, cat it
+					-> Perhaps this is still not fixed...
+
+2021-03-17.03   Enh: Separate the restart counters from the failed ping counters.
+					-> create 2 new slots after the maximum failed ping entry to hold the quick and full reset count.
+						PINGLFULL=$PINGLIST	last entry	let "PINGLQUIK=PINGLFULL-1" next to last entry
+						FailedPings_inc $PINGLFULL	# don't interfere with the failed ping count.
+
+0.7.1 03/16/2021
 
 2021-03-16.05   Bug: Launching wlanpoke with the web server option multiple times caused program loops.
 					-> the busybox kill command does not accept the negative PID to kill a process and its dependents. Removed the '-' from $PID
