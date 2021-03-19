@@ -22,7 +22,7 @@ elif [[ "$trq" == 'RawFails' ]] ; then   # raw output for automated reports
   echo $VersWLP
   echo `date` "(" `uptime` ")"
   cat /var/log/fping.txt
-  else
+else
   echo -e "HTTP/1.1 200 OK\r"
   echo "Content-type: text/html"
   echo
