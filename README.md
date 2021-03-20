@@ -1,7 +1,7 @@
 # wlanpoke
 Mitigate Wireless Connectivity Loss in Squeezebox Radios
 
-Version 0.7.2
+Version 0.7.3
 
 Introduction
 
@@ -15,7 +15,7 @@ Besides mitigating the wireless connectivity issue, the software instruments the
 
 The software is implemented as the shell script "wlanpoke.sh." plus supporting files and documentation. There is also an optional script simple 'web server' to serve statistics to a web browser.
 
-This software has been rushed together in response to an emergency of constantly failing radios. Versions have been keeping the author's 4 SB and 2 UE radios connected for 6 months as of this writing. Several users have downloaded previous versions, and they have reported that it has generally worked to keep their radios usable. This software is just a temporary partial mitigation of a serious reliability issue that has arisen during 2020. There are many un- or under-tested functions and features, multitudes of bugs, questionable methods, and coding ugliness. Please assist in pointing these out or fixing them.
+This software has been rushed together in response to an emergency of constantly failing radios. Versions have been keeping the author's 4 SB and 3 UE radios connected for 6 months as of this writing. Several users have downloaded previous versions, and they have reported that it has generally worked to keep their radios usable. This software is just a temporary partial mitigation of a serious reliability issue that has arisen during 2020. There are many un- or under-tested functions and features, multitudes of bugs, questionable methods, and coding ugliness. Please assist in pointing these out or fixing them.
 
 We hope this software will become obsolete when the root causes of the unreliability have been fixed. In the mean time, your kind suggestions and improvements are appreciated. Please feel free to modify and adapt the scripts for your own purposes. And please feel free to join the effort to find real lasting solutions to this issue.
 
