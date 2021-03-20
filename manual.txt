@@ -1,4 +1,4 @@
-                wlanpoke User Manual Version 0.7.2
+                wlanpoke User Manual Version 0.7.3
 
 Introduction
 
@@ -18,7 +18,7 @@ We hope this software will become obsolete when the root causes of the unreliabi
 
 Please address your responses to the slimdevices forum.
 
-Note: the github download system creates a zip file containing a folder with the same name as the zip file name. This is no longer a flat file, and, when unzipped, deposits the software into a sub folder named for the version. The contents of this sub folder must be copied to the installation folder, which is a step that was not described in the original manual.txt instructions. New versions of this file, with higher minor numbers, are placed in the github main branch as they are written, and may be helpful. Good luck!
+Note: the GitHub download system creates a zip file containing a folder with the same name as the zip file name. This is no longer a flat file, and, when unzipped, deposits the software into a sub folder named for the version. The contents of this sub folder must be copied to the installation folder, which is a step that was not described in the original manual.txt instructions. New versions of this file, with higher minor numbers, are placed in the GitHub main branch as they are written, and may be helpful. Good luck!
 
 
 Usage
@@ -58,6 +58,15 @@ The 'quick' server responds quite quickly and displays only the status page, how
 The 'slow' server takes one or more seconds to run code to parse the URL. You can display files in the installation folder, and do perhaps other mischief. Because of this, the slow server is not the default.
 
 You can change what the page displays by editing the script that creates the page, see below.
+
+
+Desktop Radio Failure Summary Report
+
+Using the optional 'slow' web server allows the radio to respond to different URLs. The URL "RawFails" returns a summary of the failed pings since wlanpoke launch. See Log File Analysis below for an explanation. Enter into a browser, e.g.,:
+
+  http://192.168.0.55:8080/RawFails
+
+The included gs.bat file, after customization, can be run at a command prompt to query all your radios and display them or append them to a log file within a few seconds. This script uses the 'curl' utility to call each radio and save the results, but it requires editing the file to include your radio's hostnames or ip addresses.
 
 
 Logging Server
@@ -115,7 +124,7 @@ Usage: wlanpoke.sh [options]
  -l * log level 0-8 verbosity (default 3)
  -vt  enable verbose tcp logging of link quality statistics (default no)
  -c   show copyright and license notice and exit
- -h   help and version 0.7.2
+ -h   help and version 0.7.3
 
     * requires a reasonable value: no special chars, options are not validated. E.g.,
       -s 10
@@ -185,9 +194,9 @@ o The 'pwp' shell function lists all processes containing 'wlan' to list wlanpok
 o The 'll' function lists details for all files matching any arguments you give. 'll *.local' lists the files ending with ".local".
 o These ephemeral functions go away after closing the session. You will save time if you put them into root's "/root/.profile" file or the all users "/etc/profile" (no dot).
 
-Of course, you must have already downloaded the zip file so that you can read this manual. Transfer the file. There are several ways to do this. One way is 'tftp' (Trivial FTP). If you don't have a 'tftpd' server running, they are simple to download and install. Put the downloaded wlanpoke-0.7.2.zip in the tftpd root folder, then run:
+Of course, you must have already downloaded the zip file so that you can read this manual. Transfer the file. There are several ways to do this. One way is 'tftp' (Trivial FTP). If you don't have a 'tftpd' server running, they are simple to download and install. Put the downloaded wlanpoke-0.7.3.zip in the tftpd root folder, then run:
 
-tftp -g -l wlanpoke-0.7.2.zip -r wlanpoke-0.7.2.zip 192.168.0.4
+tftp -g -l wlanpoke-0.7.3.zip -r wlanpoke-0.7.3.zip 192.168.0.4
 
 where "192.168.0.4" is replaced by the tftpd server's ip address.
 
@@ -202,16 +211,16 @@ At this point, the zip file has been downloaded into the radio.
 The suggested installation directory is "/etc/wlanpoke". Create the directory:
   mkdir /etc/wlanpoke
 
-Regrettably, there are several versions of the release zip file: a simple flat file (no directory structure) with the file name wlanpoke.0.7.2.zip (note the period instead of hyphen), and two from the github site that have different naming conventions (e.g., wlanpoke-0.7.2.zip or wlanpoke-main.zip), which duplicate the file name in an included folder, requiring an extra step.
+Regrettably, there are several versions of the release zip file: a simple flat file (no directory structure) with the file name wlanpoke.0.7.3.zip (note the period instead of hyphen), and two from the GitHub site that have different naming conventions (e.g., wlanpoke-0.7.3.zip or wlanpoke-main.zip), which duplicate the file name in an included folder, requiring an extra step.
 
 Unzip the files into the installation directory, overwriting anything there:
-  unzip -o wlanpoke-0.7.2.zip -d /etc/wlanpoke
+  unzip -o wlanpoke-0.7.3.zip -d /etc/wlanpoke
 
 See if the zip file had an included folder:
   ls -al /etc/wlanpoke
 
 If you see a folder with the same name as the zip file, that folder contains the new software. Copy or move the contents of that folder to the installation folder, overwriting any existing files:
-  mv -f /etc/wlanpoke/wlanpoke-0.7.2/* /etc/wlanpoke
+  mv -f /etc/wlanpoke/wlanpoke-0.7.3/* /etc/wlanpoke
 
 Check again to see that the included files listed below are there:
   ls -al /etc/wlanpoke
@@ -335,6 +344,27 @@ where the options are:
 All the housekeeping stuff at the start of ahttpd.sh check options and kill older processes. It contains a "killall nc" statement that may interfere with wlanpoke sending messages at that moment, but this is not critical (famous last words). That statement was included during development to get rid of hung nc sessions that tied up the desired listening port, a bug. Perhaps the bug has been fixed, and this is no longer necessary.
 
 
+Customize gs.bat and Create gs.sh
+
+The gs.bat Windows script quickly fetches failure status information from a list of radios running wlanpoke and the 'slow' ahttpd.sh server:
+
+  for %%d in (Radio1 192.168.0.8 Radio3) do curl http://%%d:8080/RawFails
+
+Make a list of the host names or ip addresses of your radios, then edit the example script to replace the example names and ip addresses in () with that of your radios. Run the script in a terminal (command prompt) window. 
+
+Your radios should have fixed ip addresses. Reserving a separate ip address for each radio in your router's dhcp server. You can further ease matters by assigning host names to each radio, and adding these to your router's static dns table, or to a "hosts" file on your computer. The Windows hosts file is located at \Windows\system32\drivers\etc\hosts, and requires administrative rights to modify.
+
+The gs.sh shell script is not included, but here it is. Replace the examples between "in " and " ;" (the spaces matter).
+
+  for i in Radio1 192.168.0.8 Radio3 ; do curl --http0.9 http://$i:8080/RawFails ; done
+
+If you do not include the --http0.9 option, you may get a "Received HTTP/0.9 when not allowed" error. If you assign your radios consecutive ip addresses, you could try something like this:
+
+  $ for i in 0 1 2 3 4 5 6 ; do curl --http0.9 http://192.168.0.2$i:8080/RawFails ; done
+
+See Log File Analysis above.
+
+
 Uploading Local Log Files to the Desktop
 
 If you are troubleshooting connection issues or modifying the script, it may be helpful to examine the local log files.
@@ -392,7 +422,7 @@ Ping 2s3q6f Fails[9]: 15851  49 0 0 1 13 2 0 20  4 0    (2nd floor)
 
 Earlier Software Example
 
-You may skip this section for software prior to 0.7.2, which combined the failed pings with the reset counters, making analysis more complicated:
+You may skip this section for software prior to 0.7.3, which combined the failed pings with the reset counters, making analysis more complicated:
 
 Ping 2s3q6f Fails[11]: 58702 198 3 95 5 67 5 18 0 0
 (--- array index ----      0   1 2  3 4  5 6  7 8 9 )
@@ -424,6 +454,17 @@ A python or other app to analyze these logs would be helpful. Care to write one?
 In addition, it may be helpful to add a network connection logger to log LAN connects and disconnects, and connected devices scanner to keep a chronological log file. For Windows, the Nirsoft utilities 'NetworkConnectLog' and 'Wireless Network Launcher" are very handy. The useful nmap.org app 'Nmap' and its GUI version 'Zenmap' might be helpful with LAN monitoring.
 
 
+RawFails Summary Report Analysis
+
+The optional 'slow' web server can return a 'RawFails' request to produce, for example:
+
+bsmt /etc/wlanpoke/wlanpoke.sh 0.7.2 3/18/2021 launched (slow) Thu Mar 18 14:19:33 EDT 2021
+Sat Mar 20 13:58:48 EDT 2021 ( 13:58:48 up 22 days, 20:29, load average: 0.08, 0.45, 0.61 )
+Ping 2s3q6f Fails[9]: 65506 120 0 0 1 74 2 0 81 4 0
+
+The report consists of 3 lines, consisting of radio identification, wlanpoke version, and launch time, followed by the report time and date plus the radio uptime, then finally the Fing Fails report mentioned above. The gs.bat or gs.sh scripts automate fetching these reports, but they must be customized before use, and they require 'curl' utility for use.
+
+
 Uploading Log Files
 
 You may choose to upload your log file(s) to a forum or other location. If so, you may want to de-identify (remove identifying information) from the file before uploading. The 'sed' stream editor is convenient for this purpose. Create a 'sed' command line including all the word pair patterns you wish to rename. This line may become long, and you may want to split it into several separate commands.
@@ -437,6 +478,7 @@ With 7 radios (1 is missing...) and 2 access points, the line is quite long. The
 Compress the resulting file using the very common zip deflate method. A separate "LAN.txt" file listing your wireless access point(s) and router make(s), model(s), and version(s) would be very helpful to identify problematic access points and routers.
 
 Do not upload an uncompressed log file to a forum! It is ok to include a small snippet in a forum post, but please do not "junk up" a forum topic with gibberish log entries. Snippets should be shortened by replacing unimportant information with ellipses ("...") (pl of ellipsis).
+
 
 
 

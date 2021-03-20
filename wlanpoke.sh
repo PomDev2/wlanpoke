@@ -4,7 +4,7 @@
 #
 # This program is free software under GPL3 as stated in gpl3.txt, included.
 
-Version="0.7.2 3/18/2021"
+Version="0.7.3 3/20/2021"
 
 LOGDIR="/var/log/"      # directory to store 'logs'
 GWTXT="wgw.txt"         # where to write router's gateway ip or /dev/null
@@ -190,8 +190,8 @@ case $1 in
         -l )    CheckVal $1 $2  ;   shift   ;   LOGLEVEL="$1"   ;;    # converted to integer
         -vt )   TSTSTATS="yes"  ;;  # 0.5.0
         -R )    RestartNetwork  ;;
-        -k )    KillApp                 ;   exit 0  ;;
-        -c )    cat "$APPDIR"/gpl3.txt  ;   exit 0  ;;
+        -k )    KillApp                   ;   exit 0  ;;
+        -c )    cat "$APPDIR"/LICENSE.md  ;   exit 0  ;;		# 0.7.3 was gpl3.txt
         -h )    Help            ;;
         * )     echo "Unsupported argument: '"$1"'" ;   exit 1
     esac

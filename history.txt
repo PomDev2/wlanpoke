@@ -2,6 +2,10 @@
 
 To Do:
 
+2021-03-20.01	
+
+2021-03-19.04	Bug: occasional web server hangs on RawPings access, everything else works.
+
 2021-03-17.04   Enh: FailedPings vector is hard to read.
                 Add some sort of indication to FailedPings vector to identify the quick, full, quickcount, and fullcount slots.
                 See the example in manual.txt
@@ -25,6 +29,25 @@ To Do:
 History:
 
 
+0.7.3 03/20/2021
+
+2021-03-19.03	Fnc: rename gpl3.txt LICENSE.md to make GitHub happy.
+					-> done.
+
+2021-03-19.02	Doc: document gs.bat and gs.sh
+					-> new "Customize gs.bat and Create gs.sh" manual.txt section
+
+2021-03-20.01	Doc: change "github" to "GitHub"
+					-> 3 instances change in manual.txt
+
+2021-03-19.01	Fnc: create batch file to request RawFiles. Let user adapt into a shell script.
+					-> gs.bat uses curl.
+
+2021-03-19.01	Fnc: add "RawFiles" web service to awstats.sh to provide a failed pings summary report.
+					-> done -- returns 3 lines, could be shortened.
+					-> new "Desktop Radio Failure Summary Report" manual.txt section
+					-> new "RawFails Summary Report Analysis" manual.txt section
+					
 0.7.2 03/17/2021
 
 2021-03-18.04   Enh: create shell script to upload logs to tftpd server.
