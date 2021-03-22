@@ -1,10 +1,10 @@
 #!/bin/sh
 # Tests wireless connectivity and restarts the wlan if lost. Also, sends link quality statistics to optional tcp logger.
-# Copyright (C) 2020 POMdev
+# Copyright (C) 2020, 2021 POMdev
 #
 # This program is free software under GPL3 as stated in gpl3.txt, included.
 
-Version="0.7.3 3/20/2021"
+Version="0.7.4 3/22/2021"
 
 LOGDIR="/var/log/"      # directory to store 'logs'
 GWTXT="wgw.txt"         # where to write router's gateway ip or /dev/null
@@ -146,10 +146,12 @@ KillApp () {
     fi
 }
 
-ResetQuick() {                          # 0.7.0
+ResetQuick() {                          # 0.7.4 new requirement: keep jive happy 0.7.0
     DTQRST=`date -Iseconds`
-    echo $DTQRST "Resetting wlan..."
+    echo $DTQRST "Resetting wlan..." $IFACE
+    ifconfig $IFACE down                # 0.7.4 keep jive happy
     wpa_cli reassociate
+    ifconfig $IFACE up                  # 0.7.4 keep jive happy
     DTEND=`date -Iseconds`
     echo $DTEND "Quick: waiting for successful ping..."
 }
@@ -191,7 +193,7 @@ case $1 in
         -vt )   TSTSTATS="yes"  ;;  # 0.5.0
         -R )    RestartNetwork  ;;
         -k )    KillApp                   ;   exit 0  ;;
-        -c )    cat "$APPDIR"/LICENSE.md  ;   exit 0  ;;		# 0.7.3 was gpl3.txt
+        -c )    cat "$APPDIR"/LICENSE.md  ;   exit 0  ;;        # 0.7.3 was gpl3.txt
         -h )    Help            ;;
         * )     echo "Unsupported argument: '"$1"'" ;   exit 1
     esac
