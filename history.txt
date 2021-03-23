@@ -32,10 +32,17 @@ History:
 
 0.7.4 03/22/2021
 
-2021-03-22.01   Fnc: keep jive happy, particularly Settings | Advanced | Diagnostics: "Check Network", "Wireless Info", and "Server Info"
+2021-03-21.03	Bug: "sh: 169: unknown operand" message launching before network fully up.
+					-> line 662 variable $IPFIRST missing quotes in comparison, fixed:
+				      if [[ "$IPFIRST" == "169" ]] ; then		# 0.7.4: eliminate "sh: 169: unknown operand" error.
+
+2021-03-22.01   Fnc: keep jive happy, particularly Settings | Advanced | Diagnostics: 
+					"Check Network", "Wireless Info", and "Server Info"
                     -> The quick reset, while restoring lost connectivity, somehow was not sufficient for jive, 
                     which reported failures in the above menu selections. 
-                    -> Added ifconfig eth1 down ; wpa_cli reassoc ; ifconfig eth1 up to ResetQuick()
+					->  get the dhcp client process ID to signal dhcp client to USR1=renew the lease and gateway
+						local uPID="/var/run/udhcpc.""$IFACE"".pid" ; kill -s USR1 `cat "$uPID"`
+                    -> NOT USED: Added ifconfig eth1 down ; wpa_cli reassoc ; ifconfig eth1 up to ResetQuick()
 
 0.7.3 03/20/2021
 

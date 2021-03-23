@@ -149,9 +149,12 @@ KillApp () {
 ResetQuick() {                          # 0.7.4 new requirement: keep jive happy 0.7.0
     DTQRST=`date -Iseconds`
     echo $DTQRST "Resetting wlan..." $IFACE
-    ifconfig $IFACE down                # 0.7.4 keep jive happy
     wpa_cli reassociate
-    ifconfig $IFACE up                  # 0.7.4 keep jive happy
+    #ifconfig $IFACE down                       # 0.7.4.1 was b4, had to move below because of new sw supporting rf_kill! keep jive happy
+    #ifconfig $IFACE up                         # 0.7.4 keep jive happy
+    # 0.7.4.2 get the dhcp client process ID to signal dhcp client to USR1=renew the lease and gateway
+    local uPID="/var/run/udhcpc.""$IFACE"".pid"
+    kill -s USR1 `cat "$uPID"`
     DTEND=`date -Iseconds`
     echo $DTEND "Quick: waiting for successful ping..."
 }
@@ -659,7 +662,7 @@ while true; do
       IPADDR=`cat "$LOGDIR"ip.txt`
       IPFIRST=$(echo $IPADDR | cut -d '.' -f 1)     #
       IPLAST=$(echo $IPADDR | cut -d '.' -f 4)      # aid machine identification in logs in case of duplicate names.
-      if [[ $IPFIRST == "169" ]] ; then
+      if [[ "$IPFIRST" == "169" ]] ; then           # 0.7.4: eliminate "sh: 169: unknown operand" error.
         GATEWAY=""                                  # inadequate configuration
       else
         GATEWAY=`netstat -r -n | grep ^0.0.0.0 | cut -f2 | awk '{print $2}'`
@@ -695,7 +698,7 @@ while true; do
         SaveStats                                               # 0.7.2: save these statistics only if we did a reset, was below after first ping failure.
         FailedPings_save                                        # 0.7.0
         # 0.7.2: sdd 'fails' count
-        echo $DTOK $HOSTNAME.$IPLAST"_"$VerSign failed $DTNG quick $DTQRST reset $DTRST up $DTEND `iwconfig $IFACE` fails $n `cat $FPINGLOG` > $LOGRECVY    
+        echo $DTOK $HOSTNAME.$IPLAST"_"$VerSign failed $DTNG quick $DTQRST reset $DTRST up $DTEND `iwconfig $IFACE` fails $n `cat $FPINGLOG` > $LOGRECVY
         decho 5 $FPINGLOG "Recovery saved to " $LOGRECVY        # cat $FPINGLOG ; cat $LOGRECVY
         #LogFile_save =                                         # 0.7.2 skip it. HA, HA, that's all files!!! try a single asterisk NOT period (a directory), does this work?
         LogFile_save $LOGRECVY                                  # 0.7.2 undo: try quotes : FAILS after a few times, don't know why: append $LOGRECVY to the $ERRLOG log file
