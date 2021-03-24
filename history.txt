@@ -4,31 +4,71 @@ To Do:
 
 
 2021-03-21.01   Bug: 2 complaints of the script not working every time (loses connection)
-
-2021-03-19.04   Bug: occasional web server hangs on RawPings access, everything else works.
-
-2021-03-17.04   Enh: FailedPings vector is hard to read.
-                Add some sort of indication to FailedPings vector to identify the quick, full, quickcount, and fullcount slots.
-                See the example in manual.txt
-                -> HOLD: Takes 4 tests.... (if elif elif elif fi) ... too much for now.
-
+					-> The ResetQuick function requires signaling the udhcpc client to renew the ip address, which is handled by the wpa_cli program running in the background. However, in 4 of 7 radios here, wpa_cli was not running, which meant no lease renewal after reassociation, which was necessary to keep jive happy.
+					-> ACTIVE, hopefully fixed in 0.7.5 or 0.7.4, wait for reports.
+					-> WORKAROUND: disable quick reset with -Q 7 option, or -F 3 option.
+					
 2021-03-16.03   Bug: 'quick' web server serves out of data pages.
                     -> 'quick' server may become deprecated, although it uses less memory.
-
-2020.09.19.08   Enh: Support single and double quotes in log entries.
 
 2020.09.17.10   Enh: Sanity check for configured options.
                     -> do not specify -w quick, causes rapid loop, hard to break.
 
 2020.09.17.09   Enh: Improve CheckVal to at least reject -options as values.
-2020.09.17.08   Enh: Use more robust method to determine squeezeplay radio name and LMS server ip.
-2020.09.17.07   Enh: Automatically determine wlan interface (wlan0, eth1, etc.).
-2020.09.17.06   Fnc: Test and handle AP or lan outages.
-2020.09.17.05   Fnc: Test and handle ethernet cable attachment and disconnect.
 
 
 History:
 
+
+0.7.5 03/24/2021
+
+
+2021-03-24.03   Fnc: Add 'last resort' dhcpc lease renewal request in the case of persistent lack of valid ip or gateway
+					->done
+					
+2021-03-24.02   Fnc: remove gratuitous dhcpc lease renewal request from ResetQuick, as it occurs before the reassociation, not after.
+					-> done, and previous references to removed if down / up calls.
+					
+2021-03-24.02   Fnc: move wpa_cli_check to be called before every ping test, very frequently.
+					-> done. check this to see when the wpa_cli quits. If before the network is lost, that's important to know.
+					-> can be moved to once every 10 tests after this determination
+					-> initial testing shows wpa_cli failing and now restarting, with no ping failure before or after.
+
+2021-03-24.01   Fnc: remove unused FailedPings_getEntry
+					-> done.
+					
+2021-03-23.01   Fnc: mitigate the lack of wpa_cli running to handle wpa_actions.
+					-> new function wpa_cli_check() introduced to check that wpa_cli is running, and restart it if not.
+					The function logs restarts, plus cases in which the wpa_cli pid(s) have changed.
+					For now, this function is called only at the beginning of ResetQuick(). It could be called each ping test.
+					If ResetQuick is disabled, the hard reset will relaunch wpa_cli anyway.
+					Restarts and process ID changes and are logged locally and to the tcp logging server.
+					The function does not check to see the wpa_cli mode (i.e., -B -a), nor does it check whether multiple instances are running. An enhancement may be desirable.
+					The reason wpa_cli stops running is unknown, but it may have crashed. The recEvent utility shows messages stopping before a failure is detected, then resuming immediately after wpa_supplicant and wpa_client are killed, until the driver is unloaded. 
+					-> The FailedPings array index after full resets, default [10], is used to store the count of times wpa_cli has been found missing and restarted.
+
+2021-03-19.04   Bug: occasional web server hangs on RawPings access, everything else works.
+					-> CXL: cannot reproduce
+
+2021-03-17.04   Enh: FailedPings vector is hard to read.
+                Add some sort of indication to FailedPings vector to identify the quick, full, quickcount, and fullcount slots.
+                See the example in manual.txt
+					-> HOLD: Takes 4 tests.... (if elif elif elif fi) ... too much for now.
+
+2020.09.19.08   Enh: Support single and double quotes in log entries.
+					-> HOLD: too complex for now
+
+2020.09.17.07   Enh: Automatically determine wlan interface (wlan0, eth1, etc.).
+					-> HOLD: eth1 seems hard coded in baby
+
+2020.09.17.08   Enh: Use more robust method to determine squeezeplay radio name and LMS server ip.
+					-> CXL: not causing any trouble so far.
+					
+2020.09.17.06   Fnc: Test and handle AP or lan outages.
+					-> CXL: too hard to separate from wireless issues.
+					
+2020.09.17.05   Fnc: Test and handle ethernet cable attachment and disconnect.
+					-> CXL: radio stays on wireless even when Ethernet cable is attached unless selected from UI
 
 0.7.4 03/22/2021
 

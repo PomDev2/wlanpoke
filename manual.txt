@@ -1,4 +1,4 @@
-                wlanpoke User Manual Version 0.7.3
+                wlanpoke User Manual Version 0.7.5
 
 Introduction
 
@@ -124,7 +124,7 @@ Usage: wlanpoke.sh [options]
  -l * log level 0-8 verbosity (default 3)
  -vt  enable verbose tcp logging of link quality statistics (default no)
  -c   show copyright and license notice and exit
- -h   help and version 0.7.3
+ -h   help and version 0.7.5
 
     * requires a reasonable value: no special chars, options are not validated. E.g.,
       -s 10
@@ -194,9 +194,9 @@ o The 'pwp' shell function lists all processes containing 'wlan' to list wlanpok
 o The 'll' function lists details for all files matching any arguments you give. 'll *.local' lists the files ending with ".local".
 o These ephemeral functions go away after closing the session. You will save time if you put them into root's "/root/.profile" file or the all users "/etc/profile" (no dot).
 
-Of course, you must have already downloaded the zip file so that you can read this manual. Transfer the file. There are several ways to do this. One way is 'tftp' (Trivial FTP). If you don't have a 'tftpd' server running, they are simple to download and install. Put the downloaded wlanpoke-0.7.3.zip in the tftpd root folder, then run:
+Of course, you must have already downloaded the zip file so that you can read this manual. Transfer the file. There are several ways to do this. One way is 'tftp' (Trivial FTP). If you don't have a 'tftpd' server running, they are simple to download and install. Put the downloaded wlanpoke-0.7.5.zip in the tftpd root folder, then run:
 
-tftp -g -l wlanpoke-0.7.3.zip -r wlanpoke-0.7.3.zip 192.168.0.4
+tftp -g -l wlanpoke-0.7.5.zip -r wlanpoke-0.7.5.zip 192.168.0.4
 
 where "192.168.0.4" is replaced by the tftpd server's ip address.
 
@@ -211,16 +211,16 @@ At this point, the zip file has been downloaded into the radio.
 The suggested installation directory is "/etc/wlanpoke". Create the directory:
   mkdir /etc/wlanpoke
 
-Regrettably, there are several versions of the release zip file: a simple flat file (no directory structure) with the file name wlanpoke.0.7.3.zip (note the period instead of hyphen), and two from the GitHub site that have different naming conventions (e.g., wlanpoke-0.7.3.zip or wlanpoke-main.zip), which duplicate the file name in an included folder, requiring an extra step.
+Regrettably, there are several versions of the release zip file: a simple flat file (no directory structure) with the file name wlanpoke.0.7.5.zip (note the period instead of hyphen), and two from the GitHub site that have different naming conventions (e.g., wlanpoke-0.7.5.zip or wlanpoke-main.zip), which duplicate the file name in an included folder, requiring an extra step.
 
 Unzip the files into the installation directory, overwriting anything there:
-  unzip -o wlanpoke-0.7.3.zip -d /etc/wlanpoke
+  unzip -o wlanpoke-0.7.5.zip -d /etc/wlanpoke
 
 See if the zip file had an included folder:
   ls -al /etc/wlanpoke
 
 If you see a folder with the same name as the zip file, that folder contains the new software. Copy or move the contents of that folder to the installation folder, overwriting any existing files:
-  mv -f /etc/wlanpoke/wlanpoke-0.7.3/* /etc/wlanpoke
+  mv -f /etc/wlanpoke/wlanpoke-0.7.5/* /etc/wlanpoke
 
 Check again to see that the included files listed below are there:
   ls -al /etc/wlanpoke
@@ -317,7 +317,11 @@ Main loop: sleep 1
 
 * These constants, plus the wireless system calls, determine how long it takes the script to restore wireless connectivity. Ideally, the outage time should be short enough to not cause disruption to the playing music. Longer outages may interrupt playing, and require pressing a key to dismiss a player message, which is annoying, but not the complete disaster a reboot would be. Keeping SSH sessions alive is also a consideration: outages too long will cause an SSH session to fail, losing the session, its history, and ephemeral functions and values. The current settings under the current conditions have so far kept the music playing, with only occasional SSH sessions timing out.
 
+ResetQuick Function
+  The investigation into the root causes of the outages continues. The wireless monitoring utility wpa_cli is under suspician. Code has been added to test for its presense and to relaunch it if it is no longer running. This utility working is important to the quick reset method. The full reset method restarts the entire network stack, including wpa_cli, so it is not affected. You may wish to edit the ResetQuick function to add or remove commands as the investigation continues.
+
 For software modification testing, a hard wired serial connection, which survives wireless disconnection, is preferred. You can connect a serial connection plus 5 volt power (Gnd TxD RxD +5) from the radio to a reliable $4 NodeMCU wireless module programmed as a telnet to serial converter, or just run a serial cable to a 'TTL' level serial interface on a pc.
+
 
 Modifying the Optional Server Scripts
 
@@ -333,7 +337,7 @@ awstats.sh
   generates a response according to the incoming request if called from the slow web server. If called from the quick server, it sends a web page of WLAN statistics. Feel free to add or substitute the items on the status page, or disable the file serving. On the other hand, you may consider including some graphics, etc., on the page. Good luck.
 
 To test your modifications, you can launch the web server directly from the command line (shell prompt):
- ./ahttpd.sh (options) &
+ ./ahttpd.sh (options) -F &
 
 where the options are:
  -p * http server port (default 8080)
@@ -341,7 +345,7 @@ where the options are:
  -c   show copyright and license notice and exit
  -h   help and version (0.1.1)
 
-All the housekeeping stuff at the start of ahttpd.sh check options and kill older processes. It contains a "killall nc" statement that may interfere with wlanpoke sending messages at that moment, but this is not critical (famous last words). That statement was included during development to get rid of hung nc sessions that tied up the desired listening port, a bug. Perhaps the bug has been fixed, and this is no longer necessary.
+All the housekeeping stuff at the start of ahttpd.sh check options and kill older processes. It contains "killall" nc and cat statements that may interfere with wlanpoke sending messages at that moment, but this is not critical (famous last words). The statements were included during development to get rid of hung nc sessions that tied up the desired listening port, a bug. The cat statement was thrown in for good measure. Perhaps the problem has been fixed, and this is no longer necessary.
 
 
 Customize gs.bat and Create gs.sh
@@ -403,7 +407,7 @@ Ping 2s3q6f Fails[9]: 9687 9 0 0 0 18 0 0 19 1 0
 (--- array index ----    0 1 2 3 4  5 6 7  8 9 10 )
 (--- activity -------   ok     q      f    q f    )
 
-In this example, the -S, -Q, and -F settings were the default 2, 3, and 6, respectively. With the full reset parameter set to 6, array indexes [0 - 7] display the number of failed pings counted before the system had a successful ping. Array indexes [8] and [9] count the number of times the quick and full reset actions were performed. We would expect index [7] to be zero because the full reset also sets the failed ping counter to 1 (to keep trying), so the counter wraps from 6 to 1. Also, index [10] is zero because only some bug could increment that index.
+In this example, the -S, -Q, and -F settings were the default 2, 3, and 6, respectively. With the full reset parameter set to 6, array indexes [0 - 7] display the number of failed pings counted before the system had a successful ping. Array indexes [8] and [9] count the number of times the quick and full reset actions were performed. We would expect index [7] to be zero because the full reset also sets the failed ping counter to 1 (to keep trying), so the counter wraps from 6 to 1. Index [10] count the restarts after failure of the wpa_cli network process, but none were recorded.
 
 By far, the pings succeed with zero intervening failures, so the [0] number is large (9687). The radio had 19 quick and 1 full resets. The 1 full reset occurred at failed ping count 6. The recovery occurred after the failed ping counter, reset to 1, would be 1 or more. The 19 quick resets occurred when the ping counter was 3. The recovery, if it happened, would occur with 3, 4, 5, or 6 failed pings, which were [3..6] 0+18+0+0=18 times. Subtracting 18 recoveries from 19 quick resets [8] leaves 1 instance where the recovery did not occur before the full reset kicked in. This matches the 1 full reset counter [9]. Full reset recoveries would be included in slots [1..6], but likely mostly in [1].
 
@@ -422,7 +426,7 @@ Ping 2s3q6f Fails[9]: 15851  49 0 0 1 13 2 0 20  4 0    (2nd floor)
 
 Earlier Software Example
 
-You may skip this section for software prior to 0.7.3, which combined the failed pings with the reset counters, making analysis more complicated:
+You may skip this section for software prior to 0.7.5, which combined the failed pings with the reset counters, making analysis more complicated:
 
 Ping 2s3q6f Fails[11]: 58702 198 3 95 5 67 5 18 0 0
 (--- array index ----      0   1 2  3 4  5 6  7 8 9 )

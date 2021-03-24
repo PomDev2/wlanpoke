@@ -4,7 +4,7 @@
 #
 # This program is free software under GPL3 as stated in gpl3.txt, included.
 
-Version="0.7.4 3/22/2021"
+Version="0.7.5.2 3/24/2021"
 
 LOGDIR="/var/log/"      # directory to store 'logs'
 GWTXT="wgw.txt"         # where to write router's gateway ip or /dev/null
@@ -34,6 +34,8 @@ DTQRST=                 # time this script started quickly resetting the wlan. I
 DTRST=                  # time this script started resetting the wlan. Initially empty.
 DTEND=                  # when the reset was completed. Initially empty.
 TSTSTATS="no"           # set yes to enable periodic transmission of link statistics (0.5.0)
+
+
 
 
 
@@ -138,26 +140,35 @@ KillApp () {
       kill -TERM $PID           # 0.7.1 busybox CANNOT kill child processes, too
       # Wait until app is dead
       kill -0 $PID >/dev/null 2>&1
-    # while [ $? == 0 ]; do
-    #     sleep 1
-    #     kill -0 $PID >/dev/null 2>&1
-    # done
       rm "$PIDFILE"
     fi
 }
 
+Dhcp_renew() {                          # 0.7.5.2: try to renew the lease ourselves as a last resort.
+    # 0.7.4.2 get the dhcp client process ID to signal dhcp client to USR1=renew the lease and gateway
+    local uPID="/var/run/udhcpc.""$IFACE"".pid"
+    # -s USR1 signals the udhcpc to renew the lease.
+    kill -s USR1 `cat "$uPID"`
+}
+
+# 0.7.5.2: Various commands (below) were tried in ResetQuick(), but renewing the lease seems to be best.
+# However, it is supposed to happen because wpa_cli initiates a wpa_action to do that.
+# Doing that in ResetQuick trys ot renew the lease before the reassociation, which takes some time, and fails.
+# Make sure wpa_cli is running instead.
+    # 0.7.5.0: do it again just in case a new wpa_cli hasn't fully come on-line.
+    # 0.7.5.1: unreliable. it executes before the wireless has reassociated. rely on wpa_cli -a to request renew lease.
+    # Dhcp_renew                    # this happens before the reassociation.
+
 ResetQuick() {                          # 0.7.4 new requirement: keep jive happy 0.7.0
     DTQRST=`date -Iseconds`
     echo $DTQRST "Resetting wlan..." $IFACE
+    wpa_cli_check                       # 0.7.5.0 try to restart wpa_cli if not running (already called a moment ago)
     wpa_cli reassociate
-    #ifconfig $IFACE down                       # 0.7.4.1 was b4, had to move below because of new sw supporting rf_kill! keep jive happy
-    #ifconfig $IFACE up                         # 0.7.4 keep jive happy
-    # 0.7.4.2 get the dhcp client process ID to signal dhcp client to USR1=renew the lease and gateway
-    local uPID="/var/run/udhcpc.""$IFACE"".pid"
-    kill -s USR1 `cat "$uPID"`
     DTEND=`date -Iseconds`
     echo $DTEND "Quick: waiting for successful ping..."
 }
+
+
 
 RestartNetwork() {
     DTRST=`date -Iseconds`
@@ -511,6 +522,7 @@ CB_test () {
   CB_put He who laughs last, laughs best.
   CB_put The early bird gets the worm.
   CB_put Good news, everyone!
+  CB_put No good deed goes unpunished.
   CB_put Do not cast your pearls before swine.
 # CB_put "Ain't that a shame."  # fails  unterminated quoted string
 # CB_put According to Cameron (2013), “We must spell wurds [sic] correctly.”    # ...
@@ -578,6 +590,8 @@ let "PINGLIST=PINGRESET+3"          # 0.7.2 make space for separate counters for
 PINGLFULL=$PINGLIST                 # 0.7.2 last entry
 PINGLQUIK=$PINGLIST                 # 0.7.2 next to last entry
 let "PINGLQUIK=PINGLFULL-1"
+PING_WPA=PINGLFULL                  # 0.7.5.0: new index to keep track of times restarting wpa_cli
+let "PING_WPA=PINGLFULL+1"
 
 FailedPings_clear () {
   local i=0
@@ -593,6 +607,12 @@ FailedPings_clear () {
 FailedPings_clear
 
 outP=''
+
+FailedPings_get () {        # 0.7.5.0: return the count for a single entry
+  local R=fp$1
+  eval outP='$'$R
+}
+
 FailedPings_getAll () {
   outP=''
   local i=0
@@ -616,10 +636,6 @@ FailedPings_getAll () {
 FailedPings_save() {
   FailedPings_getAll
   # report parameters
-#  echo "Ping Secs=$PINGSECS, Quick=$PINGQUICK, Full=$PINGRESET" > $FPINGLOG
-  # report failures
-#  echo "FailedPings[$PINGLIST]: $outP" >> $FPINGLOG
-#  echo "Ping Secs=$PINGSECS, Quick=$PINGQUICK, Full=$PINGRESET, FailedPings[$PINGLIST]: $outP" >> $FPINGLOG
   echo "Ping" "$PINGSECS""s$PINGQUICK""q$PINGRESET""f Fails[$PINGLIST]: $outP" > $FPINGLOG
 }
 FailedPings_save
@@ -631,18 +647,42 @@ FailedPings_inc () {
   let "x=x+1"
   eval $R=$x
 }
-FailedPings_inc 1
+#FailedPings_inc 1      # 0.7.5.0: no longer needed, this works.
 
 
 
-# CB_getEntry returns the specified entry into global string $out
-# returns the specified index number the entry does not exist
-out=''
-FailedPings_getEntry () {
-  local R=a$1
-  eval out='$'$R
-  # echo $1 $out
+# 0.7.5.0: the wpa_cli app was not running on several radios, causing no lease renewal after reassociation.
+# There was no indication of the app quitting or crashing, or us or some other process killing it.
+# document this strange behavior, and recover from the issue.
+WPA_CLI_PID=`pidof wpa_cli`             # ResetQuick needs this running, or it has to signal for dhcpc renew itself.
+
+wpa_cli_check () {
+    local PID=`pidof wpa_cli`
+    # there may be multiple instances running, and perhaps none in the -B -a mode, so this is not exact.
+    if [[ -z "$PID" ]] ; then
+        echo "wpa_cli $WPA_CLI_PID not running, re-starting"
+        LogFile_save "wpa_cli ($WPA_CLI_PID) not running, re-starting"
+        /usr/sbin/wpa_cli -B -a/etc/network/wpa_action
+        echo "wpa_cli started ($?)"
+        PID=`pidof wpa_cli`
+        FailedPings_inc $PING_WPA
+        FailedPings_get $PING_WPA
+        local msg=$(echo `date -Iseconds` "$HOSTNAME.$IPLAST"_"$VerSign" "wpa_cli process $PID re-launched $outP")
+        echo $msg
+        LogFile_save $msg
+        echo $msg | nc -w 3 $TCPLOG $TCPPORT
+    else
+      if [[ "$WPA_CLI_PID" != "$PID" ]] ; then
+        local msg=$(echo `date -Iseconds` "$HOSTNAME.$IPLAST"_"$VerSign" "wpa_cli process $PID changed was $WPA_CLI_PID")
+        echo $msg
+        LogFile_save $msg
+        echo $msg | nc -w 3 $TCPLOG $TCPPORT
+      fi
+    fi
+    WPA_CLI_PID=$PID
 }
+# do it now at launch.
+wpa_cli_check
 
 
 
@@ -677,7 +717,18 @@ while true; do
       decho 3 "No WfFi ip address..."
     fi
     wgwSz=`echo $GATEWAY | wc -c`
+
+    # 0.7.5.2: the player needs a valid ip address and gateway. Try here as a last resort.
+    if [[ $wgwSz -lt 6 ]] ; then
+      Dhcp_renew                                    # renew the lease
+      local msg=$(echo `date -Iseconds` "$HOSTNAME.$IPLAST"_"$VerSign" "invalid ip or gateway, renewing dhcp lease")
+      echo $msg
+      LogFile_save $msg
+      #echo $msg | nc -w 3 $TCPLOG $TCPPORT         # cannot transmit
+    fi
   fi
+
+  wpa_cli_check                                     # 0.7.5.1: check this to see when the wpa_cli quits (evidently not related to ping failure).
 
   # 1.1.1.1 or larger.
   if [[ $wgwSz -lt 6 ]] ; then
@@ -752,7 +803,6 @@ while true; do
       sleep 1       # was 5
       n=1
     elif [[ $n -eq $PINGQUICK ]] ; then     # 0.7.0: new. > $PINGRESET disables ResetQuick   -ge makes a mess of the FailedPings log.
-      #FailedPings_inc $n
       FailedPings_inc $PINGLQUIK            # 0.7.2: don't interfere with the failed ping count.
       ResetQuick
     fi
