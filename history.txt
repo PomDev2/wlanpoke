@@ -2,11 +2,21 @@
 
 To Do:
 
+2021-03-25.01   Bug: partially functional gateway test to detect changing networks is falsely triggered causing script to stop mitigation.
+					-> Caused by delayed or interrupted recovery coinciding with infrequent gateway test.
+					-> The gateway test should not change the existing ip address or gateway until another valid gateway and ip address is obtained.
+					-> A failed gateway test should not interrupt the periodic full recovery mechanism.
+
+2020.09.17.05   Fnc: Test and handle ethernet cable attachment and disconnect.
+					-> Reinstated. was canceled 0.7.5: radio stays on wireless even when Ethernet cable is attached unless selected from UI
+					-> If the radio is configured for Ethernet, stop resetting the wireless.
+					-> too bad the wireless and Ethernet adapters use the same MAC address....
 
 2021-03-21.01   Bug: 2 complaints of the script not working every time (loses connection)
 					-> The ResetQuick function requires signaling the udhcpc client to renew the ip address, which is handled by the wpa_cli program running in the background. However, in 4 of 7 radios here, wpa_cli was not running, which meant no lease renewal after reassociation, which was necessary to keep jive happy.
 					-> ACTIVE, hopefully fixed in 0.7.5 or 0.7.4, wait for reports.
 					-> WORKAROUND: disable quick reset with -Q 7 option, or -F 3 option.
+					-> 0.7.6: default changed to 7.
 					
 2021-03-16.03   Bug: 'quick' web server serves out of data pages.
                     -> 'quick' server may become deprecated, although it uses less memory.
@@ -20,6 +30,19 @@ To Do:
 History:
 
 
+0.7.6 03/24/2021
+
+2021-03-25.04   Enh: Support automatic log folder detection by uplogs.sh.
+					-> done a la awstats.sh
+
+2021-03-25.03   Fnc: Support automatic log folder detection by web pages, e.g., awstats.sh
+					-> awstats.sh now derives the log folder from the wlanpoke command line, and reports the folder.
+					-> it now shows the host name in the web page title.
+
+2021-03-25.02   Fnc: Change script defaults to disable ResetQuick unless specifically configured.
+					-> PINGQUICK=7  was 3. Disable when not testing.
+
+					
 0.7.5 03/24/2021
 
 

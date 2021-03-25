@@ -6,12 +6,23 @@
 #
 # This program is free software under GPL3 as stated in gpl3.txt, included.
 
-Version="0.1.4 3/18/2021"
+Version="0.1.5 3/25/2021"
+
+LOGDIR=`ps ax | grep "wlanpoke.sh -" | grep "\-d" | sed 's/.*-d \([^ ]*\).*/\1/g'` 
+if [[ -z "$LOGDIR" ]] ; then
+  LOGDIR="/var/log/"
+fi
 
 VersWLP="unknown"
 if [[ -r "Version" ]] ; then
-  VersWLP=`cat "Version"`
+  VersWLP=`cat "Version"` 
 fi
+
+HOSTNAME=`echo $VersWLP | cut -d" " -f1`
+if [[ -z "$HOSTNAME" ]] ; then
+  HOSTNAME="WLAN"
+fi
+
 
 trq=`echo ${REQUEST##/}`        # get rid of root '/'
 if [[ "$trq" == 'date' ]] ; then
@@ -19,22 +30,22 @@ if [[ "$trq" == 'date' ]] ; then
 elif [[ -r "$trq" ]] ; then     # serve the file if it exists. To ... with the consequences!
   cat $trq
 elif [[ "$trq" == 'RawFails' ]] ; then   # raw output for automated reports
-  echo $VersWLP
+  echo $VersWLP "logging to" $LOGDIR
   echo `date` "(" `uptime` ")"
-  cat /var/log/fping.txt
+  cat ${LOGDIR}fping.txt
 else
   echo -e "HTTP/1.1 200 OK\r"
   echo "Content-type: text/html"
   echo
   echo
-  echo -e "<html><head><title>WLAN Statistics</title></head><body><h2>Wireless LAN Statistics</h2>\r\n"
+  echo -e "<html><head><title>$HOSTNAME Statistics</title></head><body><h2>Wireless LAN Statistics</h2>\r\n"
   echo "<pre>"
-  echo $VersWLP
+  echo $VersWLP "logging to" $LOGDIR
   echo `date` "(" `uptime` ")"
   echo
   iwconfig eth1
   echo "</pre><h4>wlanpoke test settings (s,q,f) and failed pings [0..n] prior to recovery</h4><pre>"
-  cat /var/log/fping.txt
+  cat ${LOGDIR}fping.txt
   echo "</pre><h4>recent AP scan results</h4><pre>"
   wpa_cli scan_results
   echo "</pre><h4>ar6002 chip statistics</h4><pre>"

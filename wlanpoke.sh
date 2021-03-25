@@ -4,9 +4,9 @@
 #
 # This program is free software under GPL3 as stated in gpl3.txt, included.
 
-Version="0.7.5.2 3/24/2021"
+Version="0.7.6 3/25/2021"
 
-LOGDIR="/var/log/"      # directory to store 'logs'
+LOGDIR="/var/log/"      # directory to store 'logs'. Alternative for troubleshooting: '/etc/log' (create directory first)
 GWTXT="wgw.txt"         # where to write router's gateway ip or /dev/null
 PINGLOG="wping.txt"     # store results of last good ping
 STATLOG="stats.txt"     # save stats in circular buffer when ping fails (0.5.0)
@@ -24,7 +24,7 @@ APPDIR=$(dirname "$0")  # where the app files are located...
 PINGWAIT=1              # wait seconds for ping to succeed, otherwise a logged failure.
 PINGSECS=2              # number of seconds to delay between ping tests. (0.7.0)
 PINGRESET=6             # number of times for ping to fail before full reset. (0.7.0)
-PINGQUICK=3             # number of times for ping to fail before quick reset. (0.7.0)
+PINGQUICK=7             # number of times for ping to fail before quick reset. 0.7.6: was 3. Disable when not testing. (0.7.0)
 
 IFACE="eth1"            # the wlan is not wlan0 but rather eth1
 GATEWAY="?"             # ip address of the router's gateway ip.
@@ -233,9 +233,6 @@ if [[ "$LOGKEEP" -gt 99 ]] ; then
 fi
 
 
-# if [[ "$LOGLEVEL" -gt 2 ]] ; then
-  # echo "wlanpoke" $Version
-# fi
 decho 2 "wlanpoke" $Version
 
 if [[ "$LOGLEVEL" -gt 3 ]] ; then
@@ -268,6 +265,9 @@ if [[ "$LOGLEVEL" -gt 3 ]] ; then
   echo "Waiting for $SLEEP seconds"
   echo "Running from $APPDIR"
 fi
+
+# 0.7.6: create the log directory, if it does not exist. # shorter: [[ ! -d "$LOGDIR" ]] && mkdir $LOGDIR 
+if [[ ! -d "$LOGDIR" ]] ; then mkdir $LOGDIR ; fi		
 
 # Can we write to this directory? If not, stop
 if echo > $GWTXT
@@ -718,6 +718,7 @@ while true; do
     fi
     wgwSz=`echo $GATEWAY | wc -c`
 
+	# 0.7.6: bug: effective only by logging that the script repeats this, and never recovers.
     # 0.7.5.2: the player needs a valid ip address and gateway. Try here as a last resort.
     if [[ $wgwSz -lt 6 ]] ; then
       Dhcp_renew                                    # renew the lease
