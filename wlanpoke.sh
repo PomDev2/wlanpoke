@@ -4,7 +4,7 @@
 #
 # This program is free software under GPL3 as stated in gpl3.txt, included.
 
-Version="0.7.6 3/25/2021"
+Version="0.8.0.1 3/27/2021"
 
 LOGDIR="/var/log/"      # directory to store 'logs'. Alternative for troubleshooting: '/etc/log' (create directory first)
 GWTXT="wgw.txt"         # where to write router's gateway ip or /dev/null
@@ -25,6 +25,11 @@ PINGWAIT=1              # wait seconds for ping to succeed, otherwise a logged f
 PINGSECS=2              # number of seconds to delay between ping tests. (0.7.0)
 PINGRESET=6             # number of times for ping to fail before full reset. (0.7.0)
 PINGQUICK=7             # number of times for ping to fail before quick reset. 0.7.6: was 3. Disable when not testing. (0.7.0)
+
+FRstSleepMin=1          # minimum time to hold off after a full reset.
+FRstSleepMax=120        # maximum time to hold off another full reset after a previous unsuccessful one.
+FRMult=5                # let FRstSleep=1+FRstSleep*FRMult/FRDiv (0.8.0.0)
+FRDiv=4                 # let FRstSleep=1+FRstSleep*FRMult/FRDiv (0.8.0.0)
 
 IFACE="eth1"            # the wlan is not wlan0 but rather eth1
 GATEWAY="?"             # ip address of the router's gateway ip.
@@ -144,6 +149,19 @@ KillApp () {
     fi
 }
 
+
+# 0.8.0.0: quick interface for time stamped and IDd logging and messages
+ADTmsg=""                                       # global for other uses
+
+Log_addDateTime () {
+  ADTmsg=$(echo `date -Iseconds` "$HOSTNAME.$IPLAST"_"$VerSign: $*")
+  echo $ADTmsg
+  echo $ADTmsg >> $ERRLOG                       # LogFile_save $ADTmsg
+  #echo $msg | nc -w 3 $TCPLOG $TCPPORT         # might work by now.
+}
+
+
+# 0.8.0.0: no longer used. Rely on wpa_cli to signal this, or just wait for dhcpc to do it itself when it feels like it.
 Dhcp_renew() {                          # 0.7.5.2: try to renew the lease ourselves as a last resort.
     # 0.7.4.2 get the dhcp client process ID to signal dhcp client to USR1=renew the lease and gateway
     local uPID="/var/run/udhcpc.""$IFACE"".pid"
@@ -157,28 +175,41 @@ Dhcp_renew() {                          # 0.7.5.2: try to renew the lease oursel
 # Make sure wpa_cli is running instead.
     # 0.7.5.0: do it again just in case a new wpa_cli hasn't fully come on-line.
     # 0.7.5.1: unreliable. it executes before the wireless has reassociated. rely on wpa_cli -a to request renew lease.
-    # Dhcp_renew                    # this happens before the reassociation.
+    # Dhcp_renew                        # this happens before the reassociation.
 
 ResetQuick() {                          # 0.7.4 new requirement: keep jive happy 0.7.0
     DTQRST=`date -Iseconds`
-    echo $DTQRST "Resetting wlan..." $IFACE
-    wpa_cli_check                       # 0.7.5.0 try to restart wpa_cli if not running (already called a moment ago)
+    #echo $DTQRST "Resetting wlan..." $IFACE
+    Log_addDateTime "Resetting wlan... $IFACE"                  # 0.8.0.0 log this activity
+    # 0.7.5.0 try to restart wpa_cli if not running (already called a moment ago)
+    # wpa_cli_check                      # 0.8.0.0: this is done in main loop just before this call, and is defined later...
     wpa_cli reassociate
     DTEND=`date -Iseconds`
-    echo $DTEND "Quick: waiting for successful ping..."
+    #echo $DTEND "Quick: waiting for successful ping..."
+    Log_addDateTime "Quick: waiting for successful ping..."      # 0.8.0.0 log this activity
 }
 
 
+# 0.8.0.0: script can hang two ways: constantly resetting the wlan before a dhcp response is achieved,
+# and some problem in the network drivers that takes a long time between
+#Mar 26 21:23:53 root: wlan: starting
+#   and what's this delay?
+#Mar 26 21:31:06 root: Starting wpa_supplicant
 
 RestartNetwork() {
     DTRST=`date -Iseconds`
-    echo $DTRST "Stopping and restarting wlan..."
+    Log_addDateTime "Stopping and restarting wlan..."               # 0.8.0.0 log this activity #echo $DTRST "Stopping and restarting wlan..."
+    #/etc/init.d/wlan stop && /etc/init.d/wlan start                # 0.8.0.1: if the stop fails, try to start anyway?
     /etc/init.d/wlan stop && /etc/init.d/wlan start
+    # kill any remaining udhcpc before sleeping. Above stop also takes time.
+    killall udhcpc                                                  # 0.8.0.0 why is it taking so long to start udhcpc?
+    Log_addDateTime "wlan restarted, sleeping."                     # 0.8.0.0 log this activity
     sleep 5       # was 10
-    echo "Restarting dhcp"
+    Log_addDateTime "Restarting dhcp"                               # 0.8.0.0 log this activity #echo "Restarting dhcp"
     udhcpc -R -a -p/var/run/udhcpc.eth1.pid -b --syslog -ieth1 -H$HOSTNAME -s/etc/network/udhcpc_action
     DTEND=`date -Iseconds`
-    echo $DTEND "Full: waiting for successful ping..."
+    #echo $DTEND "Full: waiting for successful ping..."
+    Log_addDateTime "Full: waiting for successful ping..."       # 0.8.0.0 log this activity
 }
 
 # Override the defaults with the command line arguments, if any.
@@ -266,8 +297,8 @@ if [[ "$LOGLEVEL" -gt 3 ]] ; then
   echo "Running from $APPDIR"
 fi
 
-# 0.7.6: create the log directory, if it does not exist. # shorter: [[ ! -d "$LOGDIR" ]] && mkdir $LOGDIR 
-if [[ ! -d "$LOGDIR" ]] ; then mkdir $LOGDIR ; fi		
+# 0.7.6: create the log directory, if it does not exist. # shorter: [[ ! -d "$LOGDIR" ]] && mkdir $LOGDIR
+if [[ ! -d "$LOGDIR" ]] ; then mkdir $LOGDIR ; fi
 
 # Can we write to this directory? If not, stop
 if echo > $GWTXT
@@ -313,6 +344,18 @@ IPLAST=$IPADDR              # last byte for identification. Initially IPADDR for
 # hello log on to the logging server
 if [[ -n "$TCPLOG" ]] ; then
   echo `date -Iseconds` "$HOSTNAME.$IPLAST"_"$VerSign wlanpoke $PID at uptime:" `uptime` | nc -w 3 $TCPLOG $TCPPORT
+fi
+
+# 0.8.0.0 Test new function Log_addDateTime
+Log_addDateTime "$PID at uptime:" `uptime`
+
+
+# 0.8.0.0: Save any the previous fpings.txt to a 'log' file
+#timestamp=`ls -ale $FPINGLOG | sed -e "s/ */ /g" | cut -d' ' -f8-11`       # too bad no stat, too difficult
+if [[ -f "$FPINGLOG" ]] ; then
+  local timestamp=`date -r $FPINGLOG +'%Y-%m-%d %H:%M:%S'`
+  echo `date -Iseconds` "wlanpoke $PID, previous $timestamp:" `cat $FPINGLOG` "appended to $FPINGLOG.log"
+  echo `date -Iseconds` "wlanpoke $PID, previous $timestamp:" `cat $FPINGLOG` >> "$FPINGLOG.log"
 fi
 
 # -----------------------------
@@ -454,6 +497,7 @@ LogFile_save () {
 # say hello to the log
 LogFile_save "RS"                               # 0.7.2: include a separator
 LogFile_save `date -Iseconds` "$HOSTNAME.$IPLAST"_"$VerSign wlanpoke $PID at uptime:" `uptime`
+
 
 # -----------------------------------------
 # Circular Buffer stuff for link statistics
@@ -684,18 +728,49 @@ wpa_cli_check () {
 # do it now at launch.
 wpa_cli_check
 
+# 0.8.0.0: do something if we are exiting (but no auto restart...)
+Script_exit () {
+  FailedPings_save
+  local msg=$(echo `date -Iseconds` "$HOSTNAME.$IPLAST"_"$VerSign" "wlanpoke $PID exiting: $outP")
+  echo $msg
+  LogFile_save $msg
+  echo $msg | nc -w 3 $TCPLOG $TCPPORT
+  # try to save the fpings.txt to a 'log' file
+  echo $msg >> "$FPINGLOG.log"
+  # save the last few kernel ring buffer entries.
+  dmesg | tail -n 30                    # dump to the console
+  dmesg | tail -n 30 >> $ERRLOG
+  # finally, try to save the messages file... trouble ahead here...
+  if [[ -f "/var/log/messages" ]] ; then
+    # don't use yet more memoery
+    #msg=`tail -n 30 "/var/log/messages"`
+    #echo $msg
+    #LogFile_save $msg
+    tail -n 30 "/var/log/messages" >> $ERRLOG
+    tail -n 30 "/var/log/messages"      # dump to the console
+  fi
+  echo "bye now"
+}
+# Note: kill -9 will not execute the EXIT trap before exiting.
+trap Script_exit EXIT                   # 0.8.0.0: call Script_exit() if we are exiting for any reason.
 
 
-sleep $SLEEP
+sleep $SLEEP                            # allow the network to come up before complaining that it is not up.
 
 # Initialize loop variables
 i=0
 n=0
 wgwSz=0
+iGWFails=0                              # 0.8.0.0: count of invalid GATEWAY Failures
+PingOk=0                                # 0.8.0.0: count of ok pings to hold off initial reset until a connection is established after launch.
+FRstCount=0                             # 0.8.0.0: count of current full resets, reset when ping succeeds
+FRstSleep=$FRstSleepMin                 # 0.8.0.0: was 1. number of seconds to sleep after a full reset.
 
 while true; do
-  # do this only every so often. And not if ping has failed.
-  if [ $i -eq 0 ] && [ $n -eq 0 ]; then
+
+  #if [ $i -eq 0 ] && [ $n -eq 0 ]; then            # do this only every so often. And not if ping has failed.
+  # 0.8.0.0 Do this every time if the gateway is no good.
+  if [[ $wgwSz -le 8 ]] ; then                      # 0.8.0.1: Hey! the size of 0.0.0.0 is 7, not 6! but add \n and wc returns 8
     # don't get the gateway if there is no ip address line (but it may be 169.154.x.x ...)
     if wpa_cli status | grep ip_address | cut -d '=' -f2 > "$LOGDIR"ip.txt
     then
@@ -714,27 +789,39 @@ while true; do
       fi
     else
       echo > $GWTXT
+      # this will be logged the first time below.
       decho 3 "No WfFi ip address..."
     fi
     wgwSz=`echo $GATEWAY | wc -c`
-
-	# 0.7.6: bug: effective only by logging that the script repeats this, and never recovers.
-    # 0.7.5.2: the player needs a valid ip address and gateway. Try here as a last resort.
-    if [[ $wgwSz -lt 6 ]] ; then
-      Dhcp_renew                                    # renew the lease
-      local msg=$(echo `date -Iseconds` "$HOSTNAME.$IPLAST"_"$VerSign" "invalid ip or gateway, renewing dhcp lease")
-      echo $msg
-      LogFile_save $msg
-      #echo $msg | nc -w 3 $TCPLOG $TCPPORT         # cannot transmit
-    fi
   fi
 
   wpa_cli_check                                     # 0.7.5.1: check this to see when the wpa_cli quits (evidently not related to ping failure).
 
-  # 1.1.1.1 or larger.
-  if [[ $wgwSz -lt 6 ]] ; then
-    decho 6 $wgwSz "too small"
-  elif ping -c 1 -W $PINGWAIT $GATEWAY > $PINGLOG
+  # 0.8.0: keep counting toward full reset if the gateway is bad or ping fails.
+  local iNG=1
+  if [[ $wgwSz -le 8 ]] ; then                      # 0.8.0.0: was -lt 6 # 0.8.0 larver than 1.1.1.1 was "or larger."
+    # Invalid gateway address. Keep failed iNG, send a message if the first time.
+    local msg=$(echo `date -Iseconds` "$HOSTNAME.$IPLAST"_"$VerSign" "invalid ip or gateway")
+    echo $msg
+    if [[ $iGWFails -eq 0 ]] ; then                 # 0.8.0.0: just one entry.
+      LogFile_save $msg
+    fi
+    let "iGWFails=iGWFails+1"                       # count number of passes until success...
+  else                                              # Gateway seems valid.
+    if [[ $iGWFails -gt 0 ]] ; then                 # 0.8.0.0: just one entry for the first instance.
+      local msg=$(echo `date -Iseconds` "$HOSTNAME.$IPLAST"_"$VerSign" "valid ip and gateway after" $iGWFails "attempts. IP:" $IPADDR "Gateway:" $GATEWAY)
+      echo $msg
+      LogFile_save $msg
+      echo $msg | nc -w 3 $TCPLOG $TCPPORT          # might work by now.
+      iGWFails=0                                    # 0.8.0.0: reset failure message flag
+    fi
+    # finally, see if we can ping the gateway. Note: ping 0.0.0.0 succeeds, hence -le 6 for invalid gateway!
+    if ping -c 1 -W $PINGWAIT $GATEWAY > $PINGLOG ; then
+      iNG=0
+    fi
+  fi
+
+  if [[ $iNG -eq 0 ]]
   then
     DTOK=`date -Iseconds`                           # ping succeeded.
     decho 5 $i $DTOK $GATEWAY " ping ok"
@@ -743,7 +830,6 @@ while true; do
     if [[ -n "$DTRST" || -n "$DTQRST" ]] ; then     # 0.7.0: either one will do to send the logs after a successful ping.
       # Append to the error log.
       # 0.6.2: save the log file with first the failure, then the recovery
-      # Bug: this keeps adding to the ERRLOGLAST report until the nc send is successful.
       # 0.6.2: eliminate multiple entries into ERRLOGLAST if the nc connection goes down
       if [[ -n "$DTEND" ]] ; then
         # 0.6.2: Save the log file with first the failure, then the recovery, not after stats have been saved.
@@ -752,13 +838,12 @@ while true; do
         # 0.7.2: sdd 'fails' count
         echo $DTOK $HOSTNAME.$IPLAST"_"$VerSign failed $DTNG quick $DTQRST reset $DTRST up $DTEND `iwconfig $IFACE` fails $n `cat $FPINGLOG` > $LOGRECVY
         decho 5 $FPINGLOG "Recovery saved to " $LOGRECVY        # cat $FPINGLOG ; cat $LOGRECVY
-        #LogFile_save =                                         # 0.7.2 skip it. HA, HA, that's all files!!! try a single asterisk NOT period (a directory), does this work?
         LogFile_save $LOGRECVY                                  # 0.7.2 undo: try quotes : FAILS after a few times, don't know why: append $LOGRECVY to the $ERRLOG log file
         cat $LOGRECVY >> $ERRLOGLAST
         DTEND=
       fi
 
-      if [[ -n "$TCPLOG" ]] ; then      # 0.6.4: NOT if [[ -n TCPLOG ]] ; then
+      if [[ -n "$TCPLOG" ]] ; then                  # 0.6.4: NOT if [[ -n TCPLOG ]] ; then
         decho 3 "Sending wlanerr.log to $TCPLOG $TCPPORT"
         if cat "$ERRLOGLAST" | nc -w 3 $TCPLOG $TCPPORT
         then
@@ -775,10 +860,17 @@ while true; do
       fi
 
     fi
+
+    let PingOk++
+    FRstCount=0                 # 0.8.0.0 count of current full resets, reset when ping succeeds (0.8.0.0)
+    FRstSleep=$FRstSleepMin     # number of seconds to sleep after a full reset. (0.8.0.0)
+
     # save the current successful ping statistics
-    n=0                 # 0.7.2 moved here so that the value can be used in reports above
+    n=0                         # 0.7.2 moved here so that the value can be used in reports above
     GetStats
     DTNG=
+  elif [[ $PingOk -eq 0 ]] ; then
+    echo "waiting for successful first ping"
   else
     if [[ -z "$DTNG" ]] ; then
       DTNG=`date -Iseconds`
@@ -798,11 +890,17 @@ while true; do
     fi
     let "n=n+1"
     if [[ $n -gt $PINGRESET ]] ; then       # 0.7.0: was 6 # 2x6=12 seconds was 2x10=20 seconds
-      #FailedPings_inc $n
       FailedPings_inc $PINGLFULL            # 0.7.2: don't interfere with the failed ping count.
       RestartNetwork
-      sleep 1       # was 5
-      n=1
+      let FRstCount++                       # count of current full resets, reset when ping succeeds (0.8.0.0)
+      Log_addDateTime "Sleeping $FRstCount time for $FRstSleep seconds. Next: 1 + $FRstSleep x $FRMult / $FRDiv up to $FRstSleepMax"
+      sleep $FRstSleep                      # 0.8.0.0: was #sleep 1       # was 5
+      # 0.8.0.0: increment the sleep time a bit.
+      let FRstSleep=1+FRstSleep*FRMult/FRDiv
+      if [[ $FRstSleep -gt $FRstSleepMax ]] ; then
+        FRstSleep=$FRstSleepMax
+      fi
+      n=1                                   # start the counter over, but not at zero so after a recovery the counter will be >= 1
     elif [[ $n -eq $PINGQUICK ]] ; then     # 0.7.0: new. > $PINGRESET disables ResetQuick   -ge makes a mess of the FailedPings log.
       FailedPings_inc $PINGLQUIK            # 0.7.2: don't interfere with the failed ping count.
       ResetQuick

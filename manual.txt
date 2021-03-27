@@ -1,4 +1,4 @@
-                wlanpoke User Manual Version 0.7.6
+                wlanpoke User Manual Version 0.8.0
 
 Introduction
 
@@ -55,7 +55,7 @@ There are two versions of the optional web server, so-called 'quick' and 'slow' 
 
 The 'quick' server responds quite quickly and displays only the status page, however, the display is out of date, and you should refresh the page to get more up-to-date information. That may not be so 'quick' after all.
 
-The 'slow' server takes one or more seconds to run code to parse the URL. You can display files in the installation folder, and do perhaps other mischief. Because of this, the slow server is not the default.
+The 'slow' server takes about 1 second to run code to parse the URL. You can display files in the installation folder, and do perhaps other mischief. Because of this, the slow server is not the default, but more useful because it supports the 'RawFails' request.
 
 You can change what the page displays by editing the script that creates the page, see below.
 
@@ -66,7 +66,7 @@ Using the optional 'slow' web server allows the radio to respond to different UR
 
   http://192.168.0.55:8080/RawFails
 
-The included gs.bat file, after customization, can be run at a command prompt to query all your radios and display them or append them to a log file within a few seconds. This script uses the 'curl' utility to call each radio and save the results, but it requires editing the file to include your radio's hostnames or ip addresses.
+The included gs.bat file, after customization, can be run at a command prompt to query all your radios and display them or append them to a log file within a few seconds. This script uses the 'curl' utility to call each radio and save the results, but it requires editing the file to include your radio's hostnames or ip addresses. Suggestion: find and install a curl utility.
 
 
 Logging Server
@@ -124,7 +124,7 @@ Usage: wlanpoke.sh [options]
  -l * log level 0-8 verbosity (default 3)
  -vt  enable verbose tcp logging of link quality statistics (default no)
  -c   show copyright and license notice and exit
- -h   help and version 0.7.6
+ -h   help and version 0.8.0
 
     * requires a reasonable value: no special chars, options are not validated. E.g.,
       -s 10
@@ -152,6 +152,7 @@ To specify command line options that rarely or never change, change the default 
 -S    If you want to speed up the reset after a failure, set this to 1 second.
 
 -Q    Set this number to a number a few counts lower than the full reset value below to attempt a quick reset, or higher to disable quick reset.
+      This parameter is set by default to effectively disable the quick reset method because it works only "99 times out of 100."
 
 -F    Set this number to a lower value to more quickly completely reset the wireless for shorter interruptions if the quick method is not effective.
 
@@ -194,9 +195,9 @@ o The 'pwp' shell function lists all processes containing 'wlan' to list wlanpok
 o The 'll' function lists details for all files matching any arguments you give. 'll *.local' lists the files ending with ".local".
 o These ephemeral functions go away after closing the session. You will save time if you put them into root's "/root/.profile" file or the all users "/etc/profile" (no dot).
 
-Of course, you must have already downloaded the zip file so that you can read this manual. Transfer the file. There are several ways to do this. One way is 'tftp' (Trivial FTP). If you don't have a 'tftpd' server running, they are simple to download and install. Put the downloaded wlanpoke-0.7.6.zip in the tftpd root folder, then run:
+Of course, you must have already downloaded the zip file so that you can read this manual. Transfer the file. There are several ways to do this. One way is 'tftp' (Trivial FTP). If you don't have a 'tftpd' server running, they are simple to download and install. Put the downloaded wlanpoke-0.8.0.zip in the tftpd root folder, then run:
 
-tftp -g -l wlanpoke-0.7.6.zip -r wlanpoke-0.7.6.zip 192.168.0.4
+tftp -g -l wlanpoke-0.8.0.zip -r wlanpoke-0.8.0.zip 192.168.0.4
 
 where "192.168.0.4" is replaced by the tftpd server's ip address.
 
@@ -211,16 +212,16 @@ At this point, the zip file has been downloaded into the radio.
 The suggested installation directory is "/etc/wlanpoke". Create the directory:
   mkdir /etc/wlanpoke
 
-Regrettably, there are several versions of the release zip file: a simple flat file (no directory structure) with the file name wlanpoke.0.7.6.zip (note the period instead of hyphen), and two from the GitHub site that have different naming conventions (e.g., wlanpoke-0.7.6.zip or wlanpoke-main.zip), which duplicate the file name in an included folder, requiring an extra step.
+Regrettably, there are several versions of the release zip file: a simple flat file (no directory structure) with the file name wlanpoke.0.8.0.zip (note the period instead of hyphen), and two from the GitHub site that have different naming conventions (e.g., wlanpoke-0.8.0.zip or wlanpoke-main.zip), which duplicate the file name in an included folder, requiring an extra step.
 
 Unzip the files into the installation directory, overwriting anything there:
-  unzip -o wlanpoke-0.7.6.zip -d /etc/wlanpoke
+  unzip -o wlanpoke-0.8.0.zip -d /etc/wlanpoke
 
 See if the zip file had an included folder:
   ls -al /etc/wlanpoke
 
 If you see a folder with the same name as the zip file, that folder contains the new software. Copy or move the contents of that folder to the installation folder, overwriting any existing files:
-  mv -f /etc/wlanpoke/wlanpoke-0.7.6/* /etc/wlanpoke
+  mv -f /etc/wlanpoke/wlanpoke-0.8.0/* /etc/wlanpoke
 
 Check again to see that the included files listed below are there:
   ls -al /etc/wlanpoke
@@ -260,18 +261,18 @@ If you don't want to send messages to a logging server, use the single "-x" opti
 although it is easier to simply not run a server, and let the software just not connect.
 
 You will probably want to enable one of the included simple "web servers," which are disabled by default. The are enabled by adding the "quick" or "slow" -W options. (The *capital* 'W' is important. A small "-w" (wait) causes wlanpoke to have a conniption waiting for "quick" seconds, which equals zero.)
-  /etc/wlanpoke/wlanpoke.sh -W quick &    or     /etc/wlanpoke/wlanpoke.sh -W slow &
+  /etc/wlanpoke/wlanpoke.sh -W slow &   or     /etc/wlanpoke/wlanpoke.sh -W quick &
 
 If you want to specify a port other than the default 8080 (e.g., the standard www port 80), add -Wp #:
-  /etc/wlanpoke/wlanpoke.sh -W quick -Wp 80 &
+  /etc/wlanpoke/wlanpoke.sh -W slow -Wp 80 &
 but a radio remote control web page on that port would be delightful, no?
-  
+
 If you are debugging occasional failures to always keep your system running without rebooting, then you should preserve your logs by saving them to a location that is not wiped out during reboot like the default '/var/log/' directory. The recommended location is /etc/log/. Don't forget the forward slash (/) at the end. Add the -d option:
   /etc/wlanpoke/wlanpoke.sh -d /etc/log/ &
 
 You can optionally enable quick reset for troubleshooting or use by adding the -Q option, e.g.:
   /etc/wlanpoke/wlanpoke.sh -d /etc/log/ -Q 3 &
-  
+
 Don't forget to include your other options, e.g.:
   /etc/wlanpoke/wlanpoke.sh -d /etc/log/ -W slow &
 
@@ -304,14 +305,23 @@ PINGSECS=2
 PINGRESET=6
   * This specifies the 1 or 2 second time periods (PINGSECS) to wait (2x6=12 seconds) after a ping failure before restarting the network. A ping failure may result from a network cable change, or a router reboot, or a missed packet, or a slow return > 1 second. The radio wireless system can tolerate some of this, and we don't want to restart too soon. Overridden by the -F command line switch.
 
-PINGQUICK=4
-  * This specifies the 1 or 2 second time periods (PINGSECS) to wait (2x6=12 seconds) after a ping failure before quickly resetting the network. Overridden by the -Q command line switch. Set higher to PINGRESET to disable.
+PINGQUICK=7
+  * This specifies the 1 or 2 second time periods (PINGSECS) to wait (2x6=12 seconds) after a ping failure before quickly resetting the network. Overridden by the -Q command line switch. Be default, this is set higher than PINGRESET to disable.
+
+
+FRstSleepMin=1
+FRstSleepMax=120
+ * These specify the minimum and maximum times to hold off after a full reset. The hold off time is incremented, up to the maximum, after a full reset, and set to the minimum after the connection is reestablished. The default minimum of 1 is a bit agressive, and could result in an additional delay as the script resets the wireless just before it would have been reestablished. The maximum is perhaps too high (or maybe not). Weak signals < -50dbm will typically have more reception problems and take longer to establish a working connection. Try to boost your signal level.
+
+FRMult=5
+FRDiv=4
+ * The sleep time FRstSleep is incremented after each failed full reset by 'let FRstSleep=1+FRstSleep*FRMult/FRDiv', which increments the script hold off time by the calculated amount. Adjust the default 5/4 or 25% increase as desired, e.g., 3/2 for more or 11/10 for less, etc.
 
 RestartNetwork(): sleep 5
   * This allows the wireless driver to restart and reconnect before launching 'dhcpc', which gives up rather quickly. The 5 second delay makes it more likely to succeed right away. You may need to adjust this higher if it takes longer for the driver to reconnect.
 
-LOGKEEP='99'
-  This rather absurd maximum value is copied from syslogd. Don't crash or constrain your radio by consuming all the storage with logs (use 'nc' instead). We don't know what a reasonable maximum log storage limit might be. It seems safe to consume a little over half of what syslogd's 'messages' files take, or ~250 KB.
+LOGKEEP='3'
+  Don't crash or constrain your radio by consuming all the storage with logs (use 'nc' instead). We don't know what a reasonable maximum log storage limit might be. It seems safe to consume a little over half of what syslogd's 'messages' files take, or ~250 KB.
 
 CB_SIZE=8
   Sets the circular buffer size to capture 7 two-second statistics prior to a ping failure, plus the failure. You may want more, or can get by with less.
@@ -326,7 +336,7 @@ Main loop: sleep 1
 * These constants, plus the wireless system calls, determine how long it takes the script to restore wireless connectivity. Ideally, the outage time should be short enough to not cause disruption to the playing music. Longer outages may interrupt playing, and require pressing a key to dismiss a player message, which is annoying, but not the complete disaster a reboot would be. Keeping SSH sessions alive is also a consideration: outages too long will cause an SSH session to fail, losing the session, its history, and ephemeral functions and values. The current settings under the current conditions have so far kept the music playing, with only occasional SSH sessions timing out.
 
 ResetQuick Function
-  The investigation into the root causes of the outages continues. The wireless monitoring utility wpa_cli is under suspician. Code has been added to test for its presense and to relaunch it if it is no longer running. This utility working is important to the quick reset method. The full reset method restarts the entire network stack, including wpa_cli, so it is not affected. You may wish to edit the ResetQuick function to add or remove commands as the investigation continues.
+  The investigation into the root causes of the outages continues. The wireless monitoring utility wpa_cli is under suspician. Code has been added to test for its presense and to relaunch it if it is no longer running. This utility working is important to the quick reset method. The full reset method restarts the entire network stack, including wpa_cli, so it is not affected. You may wish to edit the ResetQuick function to add or remove commands as the investigation continues, then enable it (it is disabled by default).
 
 For software modification testing, a hard wired serial connection, which survives wireless disconnection, is preferred. You can connect a serial connection plus 5 volt power (Gnd TxD RxD +5) from the radio to a reliable $4 NodeMCU wireless module programmed as a telnet to serial converter, or just run a serial cable to a 'TTL' level serial interface on a pc.
 
@@ -362,7 +372,7 @@ The gs.bat Windows script quickly fetches failure status information from a list
 
   for %%d in (Radio1 192.168.0.8 Radio3) do curl http://%%d:8080/RawFails
 
-Make a list of the host names or ip addresses of your radios, then edit the example script to replace the example names and ip addresses in () with that of your radios. Run the script in a terminal (command prompt) window. 
+Make a list of the host names or ip addresses of your radios, then edit the example script to replace the example names and ip addresses in () with that of your radios. Run the script in a terminal (command prompt) window.
 
 Your radios should have fixed ip addresses. Reserving a separate ip address for each radio in your router's dhcp server. You can further ease matters by assigning host names to each radio, and adding these to your router's static dns table, or to a "hosts" file on your computer. The Windows hosts file is located at \Windows\system32\drivers\etc\hosts, and requires administrative rights to modify.
 
@@ -434,7 +444,7 @@ Ping 2s3q6f Fails[9]: 15851  49 0 0 1 13 2 0 20  4 0    (2nd floor)
 
 Earlier Software Example
 
-You may skip this section for software prior to 0.7.6, which combined the failed pings with the reset counters, making analysis more complicated:
+You may skip this section for software prior to 0.8.0, which combined the failed pings with the reset counters, making analysis more complicated:
 
 Ping 2s3q6f Fails[11]: 58702 198 3 95 5 67 5 18 0 0
 (--- array index ----      0   1 2  3 4  5 6  7 8 9 )

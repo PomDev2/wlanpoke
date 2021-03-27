@@ -6,16 +6,16 @@
 #
 # This program is free software under GPL3 as stated in gpl3.txt, included.
 
-Version="0.1.5 3/25/2021"
+Version="0.1.6 3/27/2021"
 
-LOGDIR=`ps ax | grep "wlanpoke.sh -" | grep "\-d" | sed 's/.*-d \([^ ]*\).*/\1/g'` 
+LOGDIR=`ps ax | grep "wlanpoke.sh -" | grep "\-d" | sed 's/.*-d \([^ ]*\).*/\1/g'`
 if [[ -z "$LOGDIR" ]] ; then
   LOGDIR="/var/log/"
 fi
 
 VersWLP="unknown"
 if [[ -r "Version" ]] ; then
-  VersWLP=`cat "Version"` 
+  VersWLP=`cat "Version"`
 fi
 
 HOSTNAME=`echo $VersWLP | cut -d" " -f1`
@@ -31,7 +31,9 @@ elif [[ -r "$trq" ]] ; then     # serve the file if it exists. To ... with the c
   cat $trq
 elif [[ "$trq" == 'RawFails' ]] ; then   # raw output for automated reports
   echo $VersWLP "logging to" $LOGDIR
-  echo `date` "(" `uptime` ")"
+  LASTSTAT=`iwconfig eth1 | grep -E -i 'Rate|Quality|excessive'`
+  LASTSTAT=$(echo $LASTSTAT | awk '{print $2,$8,$10,$17}')
+  echo `date` "(" `uptime` ")" $LASTSTAT
   cat ${LOGDIR}fping.txt
 else
   echo -e "HTTP/1.1 200 OK\r"
@@ -51,6 +53,6 @@ else
   echo "</pre><h4>ar6002 chip statistics</h4><pre>"
   /lib/atheros/wmiconfig --getTargetStats
   echo "</pre><h4>important processes</h4><pre>"
-  ps xf -o "pid,ppid,sess,pmem,vsz,size,rss,ni,pri,state,pcpu,start,time,args" | grep '[^]]$'		# 0.1.3 stat can show S<s which starts strikeout!!!
+  ps xf -o "pid,ppid,sess,pmem,vsz,size,rss,ni,pri,state,pcpu,start,time,args" | grep '[^]]$'       # 0.1.3 stat can show S<s which starts strikeout!!!
   echo -e "</pre>\r\n</body></html>"
 fi

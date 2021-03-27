@@ -2,22 +2,23 @@
 
 To Do:
 
-2021-03-25.01   Bug: partially functional gateway test to detect changing networks is falsely triggered causing script to stop mitigation.
-					-> Caused by delayed or interrupted recovery coinciding with infrequent gateway test.
-					-> The gateway test should not change the existing ip address or gateway until another valid gateway and ip address is obtained.
-					-> A failed gateway test should not interrupt the periodic full recovery mechanism.
 
-2020.09.17.05   Fnc: Test and handle ethernet cable attachment and disconnect.
-					-> Reinstated. was canceled 0.7.5: radio stays on wireless even when Ethernet cable is attached unless selected from UI
-					-> If the radio is configured for Ethernet, stop resetting the wireless.
-					-> too bad the wireless and Ethernet adapters use the same MAC address....
+2021-03-27.03   Enh: add option to suppress re-launching wpa_cli or at least delaying it.
 
-2021-03-21.01   Bug: 2 complaints of the script not working every time (loses connection)
-					-> The ResetQuick function requires signaling the udhcpc client to renew the ip address, which is handled by the wpa_cli program running in the background. However, in 4 of 7 radios here, wpa_cli was not running, which meant no lease renewal after reassociation, which was necessary to keep jive happy.
-					-> ACTIVE, hopefully fixed in 0.7.5 or 0.7.4, wait for reports.
-					-> WORKAROUND: disable quick reset with -Q 7 option, or -F 3 option.
-					-> 0.7.6: default changed to 7.
-					
+2021-03-27.02   Enh: log count of changed wpa_cli PIDs
+
+2021-03-26.05   Enh: add logfile 'ping' to log that script is still running.
+
+2021-03-26.03   Enh: change messages log file location to /etc/log for persistence over a reboot.
+                    Alt: copy messages* after a full reset.
+
+2021-03-26.02   Enh: monitor wpa_supplicant a la wpa_cli and write log entry for changed PID, but what about relaunch if missing?
+
+2020.09.17.05   Fnc: Test and handle Ethernet cable attachment and disconnect.
+                    -> Reinstated. was canceled 0.7.5: radio stays on wireless even when Ethernet cable is attached unless selected from UI
+                    -> If the radio is configured for Ethernet, stop resetting the wireless.
+                    -> too bad the wireless and Ethernet adapters use the same MAC address....
+
 2021-03-16.03   Bug: 'quick' web server serves out of data pages.
                     -> 'quick' server may become deprecated, although it uses less memory.
 
@@ -30,81 +31,146 @@ To Do:
 History:
 
 
+0.8.0.1 03/27/2021
+
+2021-03-27.03   Enh: add signal level to web 'RawFails' reports
+                    -> awstats.sh 0.1.6: LASTSTAT=`iwconfig eth1 | grep -E -i 'Rate|Quality|excessive'`
+                    LASTSTAT=$(echo $LASTSTAT | awk '{print $2,$8,$10,$17}') ; echo `date` "(" `uptime` ")" $LASTSTAT
+
+2021-03-27.01   Bug: Hey! the size of 0.0.0.0 is 7, not 6! And wc -c 0.0.0.0 returns 8 (extra \n)
+                    -> change to -le 8 was 7
+
+2021-03-26.12   Enh: Handle long delays in wlan stop and wlan start
+                    -> need to add additional logger to /etc/init.d/wlan
+
+
+0.8.0.0 03/26/2021
+
+2021-03-26.09   Enh: Hold off resetting until after the first ping succeeds to allow user to change networks.
+                    -> PingOk=0  counts ok pings to hold off initial reset until a connection is established
+
+2021-03-26.08   Enh: implement hard reset delay backoff.
+                    FRstSleepMin=1          # minimum time to hold off after a full reset.
+                    FRstSleepMax=120        # maximum time to hold off another full reset after a previous unsuccessful one.
+                    FRstSleep=1             # number of seconds to sleep after a full reset. (0.8.0.0)
+                    FRstCount=0             # count of current full resets, reset when ping succeeds (0.8.0.0)
+                    FRMult=5                # let FRstSleep=1+FRstSleep*FRMult/FRDiv (0.8.0.0)
+                    FRDiv=4                 # let FRstSleep=1+FRstSleep*FRMult/FRDiv (0.8.0.0)
+
+2021-03-26.13   Enh: Handle long delays in udhcpc launch.
+                    -> kill any remaining udhcpc before sleeping. Above stop also takes time.
+                    killall udhcpc  # why is it taking so long to start udhcpc?
+
+2021-03-26.07   Enh: log timing on all reset functions for timing analysis.
+                    Log_addDateTime() adds timestamp, RadioName, LastIP, Version, etc., to new global ADTmsg, then logs and echos.
+
+2021-03-26.11   Bug: Invalidate gateway 0.0.0.0, which will give a successful ping result!
+                    # echo 0.0.0.0 | wc -c      -> 8 not 7 because of the \n
+
+2021-03-26.10   Fnc: Don't clutter logs with endless Failed and Recovered Gateway messages
+                    -> iGWFails counter to control logging
+
+2021-03-26.06   Enh: trap any kill or exit conditions to log script exiting.
+                    -> done. trap Script_exit EXIT     # call Script_exit() if we are exiting for any reason.
+                    NOTE: kill -9 will not execute the EXIT trap before exiting.
+
+2021-03-26.09   Enh: log script exits. do something if we are exiting (but no auto restart...)
+                    New function Script_exit() tries to save logs, etc.
+
+2021-03-26.01   Enh: Previous fping.txt lost after relaunch. It would be nice to have add fping.txt to fping.log with a timestamp upon launch.
+                    -> Done. Save any the previous fpings.txt to a 'log' file
+
+2021-03-21.01   Bug: 2 complaints of the script not working every time (loses connection)
+                    -> The ResetQuick function requires signaling the udhcpc client to renew the ip address, which is handled by the wpa_cli program running in the background. However, in 4 of 7 radios here, wpa_cli was not running, which meant no lease renewal after reassociation, which was necessary to keep jive happy.
+                    -> ACTIVE, hopefully fixed in 0.7.5 or 0.7.4, wait for reports.
+                    -> WORKAROUND: disable quick reset with -Q 7 option, or -F 3 option.
+                    -> 0.7.6: default changed to 7.
+
+2021-03-25.01   Bug: partially functional gateway test to detect changing networks is falsely triggered causing script to stop mitigation.
+                    -> Caused by delayed or interrupted recovery coinciding with infrequent gateway test.
+                    -> The gateway test should not change the existing ip address or gateway until another valid gateway and ip address is obtained.
+                    -> A failed gateway test should not interrupt the periodic full recovery mechanism.
+                    Pointless Dhcp_renew() not called, but function kept for possible future use.
+
+
+2021-03-26.04   Bug: delete unnecessary call to wpa_cli_check from ResetQuick to clean up code.
+                    -> Done. This is done in main loop just before this call, and is defined later...
+
 0.7.6 03/24/2021
 
 2021-03-25.04   Enh: Support automatic log folder detection by uplogs.sh.
-					-> done a la awstats.sh
+                    -> done a la awstats.sh
 
 2021-03-25.03   Fnc: Support automatic log folder detection by web pages, e.g., awstats.sh
-					-> awstats.sh now derives the log folder from the wlanpoke command line, and reports the folder.
-					-> it now shows the host name in the web page title.
+                    -> awstats.sh now derives the log folder from the wlanpoke command line, and reports the folder.
+                    -> it now shows the host name in the web page title.
 
 2021-03-25.02   Fnc: Change script defaults to disable ResetQuick unless specifically configured.
-					-> PINGQUICK=7  was 3. Disable when not testing.
+                    -> PINGQUICK=7  was 3. Disable when not testing.
 
-					
+
 0.7.5 03/24/2021
 
 
 2021-03-24.03   Fnc: Add 'last resort' dhcpc lease renewal request in the case of persistent lack of valid ip or gateway
-					->done
-					
+                    ->done
+
 2021-03-24.02   Fnc: remove gratuitous dhcpc lease renewal request from ResetQuick, as it occurs before the reassociation, not after.
-					-> done, and previous references to removed if down / up calls.
-					
+                    -> done, and previous references to removed if down / up calls.
+
 2021-03-24.02   Fnc: move wpa_cli_check to be called before every ping test, very frequently.
-					-> done. check this to see when the wpa_cli quits. If before the network is lost, that's important to know.
-					-> can be moved to once every 10 tests after this determination
-					-> initial testing shows wpa_cli failing and now restarting, with no ping failure before or after.
+                    -> done. check this to see when the wpa_cli quits. If before the network is lost, that's important to know.
+                    -> can be moved to once every 10 tests after this determination
+                    -> initial testing shows wpa_cli failing and now restarting, with no ping failure before or after.
 
 2021-03-24.01   Fnc: remove unused FailedPings_getEntry
-					-> done.
-					
+                    -> done.
+
 2021-03-23.01   Fnc: mitigate the lack of wpa_cli running to handle wpa_actions.
-					-> new function wpa_cli_check() introduced to check that wpa_cli is running, and restart it if not.
-					The function logs restarts, plus cases in which the wpa_cli pid(s) have changed.
-					For now, this function is called only at the beginning of ResetQuick(). It could be called each ping test.
-					If ResetQuick is disabled, the hard reset will relaunch wpa_cli anyway.
-					Restarts and process ID changes and are logged locally and to the tcp logging server.
-					The function does not check to see the wpa_cli mode (i.e., -B -a), nor does it check whether multiple instances are running. An enhancement may be desirable.
-					The reason wpa_cli stops running is unknown, but it may have crashed. The recEvent utility shows messages stopping before a failure is detected, then resuming immediately after wpa_supplicant and wpa_client are killed, until the driver is unloaded. 
-					-> The FailedPings array index after full resets, default [10], is used to store the count of times wpa_cli has been found missing and restarted.
+                    -> new function wpa_cli_check() introduced to check that wpa_cli is running, and restart it if not.
+                    The function logs restarts, plus cases in which the wpa_cli pid(s) have changed.
+                    For now, this function is called only at the beginning of ResetQuick(). It could be called each ping test.
+                    If ResetQuick is disabled, the hard reset will relaunch wpa_cli anyway.
+                    Restarts and process ID changes and are logged locally and to the tcp logging server.
+                    The function does not check to see the wpa_cli mode (i.e., -B -a), nor does it check whether multiple instances are running. An enhancement may be desirable.
+                    The reason wpa_cli stops running is unknown, but it may have crashed. The recEvent utility shows messages stopping before a failure is detected, then resuming immediately after wpa_supplicant and wpa_client are killed, until the driver is unloaded.
+                    -> The FailedPings array index after full resets, default [10], is used to store the count of times wpa_cli has been found missing and restarted.
 
 2021-03-19.04   Bug: occasional web server hangs on RawPings access, everything else works.
-					-> CXL: cannot reproduce
+                    -> CXL: cannot reproduce
 
 2021-03-17.04   Enh: FailedPings vector is hard to read.
                 Add some sort of indication to FailedPings vector to identify the quick, full, quickcount, and fullcount slots.
                 See the example in manual.txt
-					-> HOLD: Takes 4 tests.... (if elif elif elif fi) ... too much for now.
+                    -> HOLD: Takes 4 tests.... (if elif elif elif fi) ... too much for now.
 
 2020.09.19.08   Enh: Support single and double quotes in log entries.
-					-> HOLD: too complex for now
+                    -> HOLD: too complex for now
 
 2020.09.17.07   Enh: Automatically determine wlan interface (wlan0, eth1, etc.).
-					-> HOLD: eth1 seems hard coded in baby
+                    -> HOLD: eth1 seems hard coded in baby
 
 2020.09.17.08   Enh: Use more robust method to determine squeezeplay radio name and LMS server ip.
-					-> CXL: not causing any trouble so far.
-					
+                    -> CXL: not causing any trouble so far.
+
 2020.09.17.06   Fnc: Test and handle AP or lan outages.
-					-> CXL: too hard to separate from wireless issues.
-					
+                    -> CXL: too hard to separate from wireless issues.
+
 2020.09.17.05   Fnc: Test and handle ethernet cable attachment and disconnect.
-					-> CXL: radio stays on wireless even when Ethernet cable is attached unless selected from UI
+                    -> CXL: radio stays on wireless even when Ethernet cable is attached unless selected from UI
 
 0.7.4 03/22/2021
 
-2021-03-21.03	Bug: "sh: 169: unknown operand" message launching before network fully up.
-					-> line 662 variable $IPFIRST missing quotes in comparison, fixed:
-				      if [[ "$IPFIRST" == "169" ]] ; then		# 0.7.4: eliminate "sh: 169: unknown operand" error.
+2021-03-21.03   Bug: "sh: 169: unknown operand" message launching before network fully up.
+                    -> line 662 variable $IPFIRST missing quotes in comparison, fixed:
+                      if [[ "$IPFIRST" == "169" ]] ; then       # 0.7.4: eliminate "sh: 169: unknown operand" error.
 
-2021-03-22.01   Fnc: keep jive happy, particularly Settings | Advanced | Diagnostics: 
-					"Check Network", "Wireless Info", and "Server Info"
-                    -> The quick reset, while restoring lost connectivity, somehow was not sufficient for jive, 
-                    which reported failures in the above menu selections. 
-					->  get the dhcp client process ID to signal dhcp client to USR1=renew the lease and gateway
-						local uPID="/var/run/udhcpc.""$IFACE"".pid" ; kill -s USR1 `cat "$uPID"`
+2021-03-22.01   Fnc: keep jive happy, particularly Settings | Advanced | Diagnostics:
+                    "Check Network", "Wireless Info", and "Server Info"
+                    -> The quick reset, while restoring lost connectivity, somehow was not sufficient for jive,
+                    which reported failures in the above menu selections.
+                    ->  get the dhcp client process ID to signal dhcp client to USR1=renew the lease and gateway
+                        local uPID="/var/run/udhcpc.""$IFACE"".pid" ; kill -s USR1 `cat "$uPID"`
                     -> NOT USED: Added ifconfig eth1 down ; wpa_cli reassoc ; ifconfig eth1 up to ResetQuick()
 
 0.7.3 03/20/2021
