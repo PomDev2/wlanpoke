@@ -1,26 +1,19 @@
                     wlanpoke To Do and History
 
+
 To Do:
 
 
-2021-03-27.03   Enh: add option to suppress re-launching wpa_cli or at least delaying it.
+2021-04-02.09	Enh: Limit potential out of control /etc/log/fping.txt.log.
+					-> need to use the logfile rotation to do this, not now
 
-2021-03-27.02   Enh: log count of changed wpa_cli PIDs
+2021-03-30.04	Enh: rename "quick" and "slow" web server options.
+					-> minimal and full? not really. quick is ok. ...
 
-2021-03-26.05   Enh: add logfile 'ping' to log that script is still running.
+2021-03-27.03   Enh: add option to suppress re-launching wpa_cli or at least delay it.
 
 2021-03-26.03   Enh: change messages log file location to /etc/log for persistence over a reboot.
                     Alt: copy messages* after a full reset.
-
-2021-03-26.02   Enh: monitor wpa_supplicant a la wpa_cli and write log entry for changed PID, but what about relaunch if missing?
-
-2020.09.17.05   Fnc: Test and handle Ethernet cable attachment and disconnect.
-                    -> Reinstated. was canceled 0.7.5: radio stays on wireless even when Ethernet cable is attached unless selected from UI
-                    -> If the radio is configured for Ethernet, stop resetting the wireless.
-                    -> too bad the wireless and Ethernet adapters use the same MAC address....
-
-2021-03-16.03   Bug: 'quick' web server serves out of data pages.
-                    -> 'quick' server may become deprecated, although it uses less memory.
 
 2020.09.17.10   Enh: Sanity check for configured options.
                     -> do not specify -w quick, causes rapid loop, hard to break.
@@ -28,7 +21,143 @@ To Do:
 2020.09.17.09   Enh: Improve CheckVal to at least reject -options as values.
 
 
+
 History:
+
+
+0.8.3.4 04/02/2021
+
+2021-04-02.07	Enh: Replace hyphen with space in "    Qr:0 Fr:3 - Wr:4 Wc:0, "
+					-> done
+
+2021-04-02.02	Enh: RawFails: change (slow) to complete launch command line.
+					-> Options=${psEntry##*.sh } but should have this in Version file.
+					"slow" is the recongnized result, and the name is changing, anyway.
+
+2021-04-02.05	Enh: RawFails: remove path '/etc/wlanpoke/' from version string.
+					-> ${0##*/} removes up to the last '/'
+
+2021-04-02.03	Enh: RawFails: change launch date "Thu Apr 1 16:24:22 EDT 2021" to "R 2021-04-01_16:24:22-0400" or "Thu" or no dow
+					-> Version file changed to uniform time stamp, used by RawFails
+
+2021-04-02.06	Enh: RawFails: change "Logging to" to "Logs:"
+					echo $VersWLP "logs:" $LOGDIR
+
+2021-04-02.03	Enh: RawFails: change 2nd line timestamp a la 2021-04-02.03
+					echo `date -Isecs` "(" `uptime` ")"
+
+2021-04-02.01	Enh: Radically shorten "Recovery or reset by hold off seconds:" and add current step:seconds.
+					echo "Step $FRstStep, limit:results: [ $SSout ] wlan: $(echo $LASTSTAT | awk '{print $2,$8,$10,$17}')" >> $FPINGLOG
+					-> seconds not added (too much info)
+
+2021-04-02.08	Bug: Missing console message title.
+					echo "Hold-off step $j was $FRstStep"	# fix message
+
+
+0.8.3.1 04/01/2021
+
+2021-04-01.02	Enh: Conditional function declaration to change timestamp formatting.
+					Do not want conditionals to slow down simple function that echos for output capture, e.g.,
+					TimeFmt=":"   # ":" for HH:MM:SS, "-" for HH-MM-SS, otherwise specified 'date' format, e.g., "-Isec" (0.8.3.1)
+
+2021-04-01.01	Enh: RawFails report is missing signal level, current step.
+					-> current value added
+					-> <=25 secs older than current RawFails into fping.txt
+
+2021-04-01.03	Enh: Trap or handle any shell math errors, now cause script to exit.
+					These are bugs, but what about that "line 1" ?
+					/etc/wlanpoke/wlanpoke.sh: line 1: arithmetic syntax error
+					Only the EXIT handler is called. see badmath.sh. Give up for now.
+					Consider reverting to let ... instead of $(( ... )) for math in functions.
+					-> HOLD. Fix the bugs instead. Revisit if a disaster.
+
+0.8.3.0 03/31/2021
+
+
+2021-03-31.01   Enh: eliminate +/-XXXX time zone from time stamps, except at sign on.
+					-> new function Date populates globals $DateTZ $DateTS $Date_S, using $Date_S
+
+2021-03-30.03   Enh: Reset PID when relaunching wpa_cli via full reset so not reported as changed.
+					-> wpa_cli_PID=`pidof wpa_cli`	# don't count our restart as an external restart.
+
+2021-03-30.02   Enh: Add method to analyze the current hold off step to see whether it can be reduced.
+					Currently, the step increments but never decrements.
+					A lengthy network outage (router reboot) would increment the step to the max, which would then wait the maximum time before resetting the radio during a wireless outage.
+
+					FRstWait_calculate $FullFails
+					-> NO: If the step is >0, OK: get the last reset recovery time
+					   Increase the time by the step percentage or 40% or add a "safety factor," YES: perhaps 3?
+					   Find the lowest step value that is >= that value.
+					   set the step to the corresponding index.
+
+2021-03-31.02   Bug: last reset #3 had no recovery entry
+					fails 21 Ping 2s-1q6f Evants, Fails[0..21]: Qr:0 Fr:3 Wr:1 Wc:3, [ 16969 18 2 1 0 0 0 0 21:1 ] Recovery or reset by hold off seconds: 12:12, 18:18, 26:0, 37: 53: 75: 106:
+					Should have been 26:21, not 26:0. There was an entry, just not the right one.
+					-> increment entry by FRstStep not FRstCount
+
+0.8.2.0 03/30/2021
+
+2021-03-30.01   Bug: remove deprecated command line options:
+                    " -w * wait seconds for ping to succeed (default $PINGWAIT)"        # 0.8.2.2: deprecated, removed
+                    " -vt  enable verbose tcp logging of link quality statistics (default $TSTSTATS)"       # 0.8.2.2: deprecated, removed
+
+2021-03-29.01   Bug: Handle two gateways for eth0 and eth1
+                    GATEWAY=`netstat -r -n | grep ^0.0.0.0 | cut -f2 | awk '{print $2}'` | cut -d' ' -f1    # may be 2 gateways eth0 and eth1
+
+2020.09.17.05   Fnc: Test and handle Ethernet cable attachment and disconnect.
+                    -> Reinstated. was canceled 0.7.5: radio stays on wireless even when Ethernet cable is attached unless selected from UI
+                    -> If the radio is configured for Ethernet, stop resetting the wireless.
+                    -> too bad the wireless and Ethernet adapters use the same MAC address....
+                    cat /etc/network/interfaces | grep "auto eth" | cut -f2
+                    AutoIFace_check ; if AutoIFace_isWLAN ; then echo -n wlan ; else echo -n Ethernet ; fi ; wpa_cli_status ; echo " ${AutoIFace##auto} $WpaST"
+                    auto eth0
+                    auto eth1=XXXXXX
+                    -> done.
+
+2021-03-26.02   Enh: monitor wpa_supplicant a la wpa_cli and write log entry for changed PID, but what about relaunch if missing?
+                    -> FailedPings_inc $PING_WPA_PID        # new slot...
+
+2021-03-27.02   Enh: log count of changed wpa_cli PIDs -- can use array [11] after wpa_cli restarts
+                    -> done, see 2021-03-26.02
+
+2021-03-27.05   Fnc: does is the wpa_cli status show a fault when the system fails?
+                    -> WpaST=$(wpa_cli status | grep -e wpa_state -e ip_add | cut -d '=' -f2 | awk '{printf("%s ",$0);}')
+                    -> added to various report strings.
+
+2021-03-29.02   Enh: Calculate SleepStep Seconds array according to new variable WaitStepPct, percentage to increase hold off wait time.
+                    -> done. Default percent is 40%
+
+2021-03-29.03   Enh: clean up FailedPings array slot definitions, a confusing mess.
+                    -> done.
+
+2021-03-29.01   Enh: replace let with shell math functions
+                    -> done.
+
+
+2021-03-28.01   Fnc: Calculate SleepStep Seconds array according to FMult,FDiv, etc.
+                    -> CXL. use percentage, see 2021-03-29.02
+
+2021-03-26.05   Enh: add logfile 'ping' to log that script is still running.
+                    -> CXL, just don't sleep as long, switched to hold off activity delay.
+
+2021-03-27.04   Fnc: Improve hold off to not hold off the script, but rather delay subsequent full resets for the indicated time.
+                    -> Renamed failed ping count "nF" was 'n', too confusing.
+                    -> FRstSleep is increased only if FRstCount -gt 0
+                    -> Keep failed ping counter 'n' counting for statistics, up to the largest number 'let' can handle, or some other limit.
+                    -> Full reset trigger is nF -eq NextFull. NextFull=n+FRstSleep/PINGSECS
+                        Quick reset is used only with low failed pings 'n', as now.
+                    -> FRstSleep minimum value is the PINGRESET*PINGSECS because built in 1..PINGRESET count no longer working.
+                    -> report count of recoveries sparse matrix indexed by n        (outage indicator)
+                    -> report: 15:3, 17:1, 18:1 ... appended to fpings entry.
+                        e.g., 4 1 ... 0 0 10:2 11:2 44:2 55:1 98:1 99:3
+                    -> use simple array of hold times indexed by the reset count.
+                        # SleepStep Seconds: 12,18,27,40,60,90,120
+                    -> report: prepended list of FullFails, indexed by SleepStep.
+                        shows how close the system was to another reset when it recovered, or didn't
+                        e.g., 12:16,10,12, 18:14,14,13, 27: 40: 60: 90: 120:
+
+2021-03-16.03   Bug: 'quick' web server serves out of data pages.
+                    -> CXL 'quick' server may become deprecated, although it uses less memory.
 
 
 0.8.0.1 03/27/2021

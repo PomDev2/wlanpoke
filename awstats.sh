@@ -6,14 +6,22 @@
 #
 # This program is free software under GPL3 as stated in gpl3.txt, included.
 
-Version="0.1.6 3/27/2021"
+Version="0.1.5 4/2/2021"
 
-LOGDIR=`ps ax | grep "wlanpoke.sh -" | grep "\-d" | sed 's/.*-d \([^ ]*\).*/\1/g'`
+psEntry=`ps ax | grep "wlanpoke.sh -" | grep -v grep`
+CmdLine=${psEntry##*/sh }
+#/etc/wlanpoke/wlanpoke.sh -W slow -d /etc/log/
+Options=${psEntry##*.sh }
+#-W slow -d /etc/log/
+
+#LOGDIR=`ps ax | grep "wlanpoke.sh -" | grep "\-d" | sed 's/.*-d \([^ ]*\).*/\1/g'`
+LOGDIR=`echo $Options | sed 's/.*-d \([^ ]*\).*/\1/g'`
 if [[ -z "$LOGDIR" ]] ; then
   LOGDIR="/var/log/"
 fi
 
-VersWLP="unknown"
+
+VersWLP="unknown $Options"
 if [[ -r "Version" ]] ; then
   VersWLP=`cat "Version"`
 fi
@@ -30,10 +38,9 @@ if [[ "$trq" == 'date' ]] ; then
 elif [[ -r "$trq" ]] ; then     # serve the file if it exists. To ... with the consequences!
   cat $trq
 elif [[ "$trq" == 'RawFails' ]] ; then   # raw output for automated reports
-  echo $VersWLP "logging to" $LOGDIR
-  LASTSTAT=`iwconfig eth1 | grep -E -i 'Rate|Quality|excessive'`
-  LASTSTAT=$(echo $LASTSTAT | awk '{print $2,$8,$10,$17}')
-  echo `date` "(" `uptime` ")" $LASTSTAT
+  #echo $VersWLP "logs:" $LOGDIR
+  echo $VersWLP
+  echo `date -Iseconds` "(" `uptime` ")"
   cat ${LOGDIR}fping.txt
 else
   echo -e "HTTP/1.1 200 OK\r"

@@ -1,4 +1,4 @@
-                wlanpoke User Manual Version 0.8.0
+                wlanpoke User Manual Version 0.8.3
 
 Introduction
 
@@ -16,9 +16,9 @@ This software has been rushed together in response to an emergency of constantly
 
 We hope this software will become obsolete when the root causes of the unreliability have been fixed. In the mean time, your kind suggestions and improvements are appreciated. Please feel free to modify and adapt the scripts for your own purposes. And please feel free to join the effort to find real lasting solutions to this issue.
 
-Please address your responses to the slimdevices forums in the README.md file, which contains news.
+Please address your responses to the slimdevices forums in the README.md file, which also contains news.
 
-Note: the GitHub download system creates a zip file containing a folder with the same name as the zip file name. This is no longer a flat file, and, when unzipped, deposits the software into a sub folder named for the version. The contents of this sub folder must be copied to the installation folder, which is a step that was not described in the original manual.txt instructions. New versions of this file, with higher minor numbers, are placed in the GitHub main branch as they are written, and may be helpful. Good luck!
+Note: Version 0.8.2 was a very large revision of the software to address issues with low signal levels in the presence of interference causing the radio's poor wireless reception, which resulted in long delays after a reset to reestablish a connection. The prior software's fixed trial limit before reset (6) would trigger another full reset before the connection could be reestablished. The limit is now specified in pseudo-seconds (default 12) and increased in steps if a lower limit fails. The "failed pings" counter keeps incrementing for a better measurement of outage time. Additional logging has been added to evaluate the system's performance in new ways. In particular a new reset recovery by limit time report shows the last several recovery times after a full reset indexed by the reset limit. The software now handles switching between Ethernet and wireless connections: an Ethernet connection disables wireless resets, although ping failures are still monitored and logged. Other code changes include improved math calculations, and a start at more meaningful and conforming variable names.
 
 
 Usage
@@ -49,11 +49,11 @@ where you substitute your radio's ip address (or host name, if that works on you
 
   http://192.168.0.55:8080
 
-This will display a Wireless LAN status page.
+This will display a "<RadioName> Statistics" status page.
 
 There are two versions of the optional web server, so-called 'quick' and 'slow' versions. These are disabled by default, you must add an option to the wlanpoke launch command to enable them, see below.
 
-The 'quick' server responds quite quickly and displays only the status page, however, the display is out of date, and you should refresh the page to get more up-to-date information. That may not be so 'quick' after all.
+The 'quick' server responds quite quickly and displays only the status page, however, the display is out of date, and you should refresh the page to get more up-to-date information. That may not be so 'quick' after all, although it does use a bit less resources.
 
 The 'slow' server takes about 1 second to run code to parse the URL. You can display files in the installation folder, and do perhaps other mischief. Because of this, the slow server is not the default, but more useful because it supports the 'RawFails' request.
 
@@ -62,7 +62,7 @@ You can change what the page displays by editing the script that creates the pag
 
 Desktop Radio Failure Summary Report
 
-Using the optional 'slow' web server allows the radio to respond to different URLs. The URL "RawFails" returns a summary of the failed pings since wlanpoke launch. See Log File Analysis below for an explanation. Enter into a browser, e.g.,:
+Using the optional 'slow' web server allows the radio to respond to different URLs. The URL "RawFails" returns a summary of the failed pings since wlanpoke launch. See Log File Analysis below for an explanation. Enter into a browser, e.g.:
 
   http://192.168.0.55:8080/RawFails
 
@@ -112,7 +112,6 @@ Usage: wlanpoke.sh [options]
  -i * interface (default eth1)
  -H * hostname used by 'dhcpc' and log messages (automatic default <PlayerName>)
  -g * gateway (ping) destination ip address (automatic default) (future)
- -w * wait seconds for ping to succeed (default 1)
  -W * optional web server 'quick' for status or 'slow' for more, or 'none' (default 'none')
  -Wp * optional web server port (default 8080)
  -S * seconds to delay between ping tests (default 2)
@@ -122,9 +121,8 @@ Usage: wlanpoke.sh [options]
  -k   kill (stop) any running wlanpoke script and exit
  -z * sleep seconds (default 5)
  -l * log level 0-8 verbosity (default 3)
- -vt  enable verbose tcp logging of link quality statistics (default no)
  -c   show copyright and license notice and exit
- -h   help and version 0.8.0
+ -h   help and version 0.8.3
 
     * requires a reasonable value: no special chars, options are not validated. E.g.,
       -s 10
@@ -143,8 +141,6 @@ To specify command line options that rarely or never change, change the default 
 
 -r    Use this to separate records in the log file. Records are related log entries triggered by a disconnection. Set to 0 (zero) for no record separator.
 
--w    If you have a really awful connection or very busy LAN, you might be able to accommodate large ping times. In this case, set the ping failure time higher, e.g., 2 seconds or more. Or, better, improve your LAN or AP.
-
 -W    This is a fun way to check up on your radio using a browser or other client. Enable the 'quick' mode to display a status web page of wireless diagnostic information, including a vector of failed pings [0..n] prior to recovery. Enable the 'slow' mode to launch a more capable server that can also parse a url, serve a file, and open the radio to who knows what. This feature has just been introduced. Feel free to modify the server scripts, see below.
 
 -Wp   specifies the port the optional server listens to. The default is 8080. You may want to change this to 80, the standard web port.
@@ -159,8 +155,6 @@ To specify command line options that rarely or never change, change the default 
 -R    Use this to simply restart the wireless network.
 
 -z    Used to delay network testing, typically during boot up. No need to pound on the network when the machine is first starting, give it some time. The software doesn't start to work until the network is first established and the gateway has been set. (was -s)
-
--vt   Uploads link quality statistics every 20 seconds as well as after every link loss recovery. Use this to monitor a radio's link quality after the fact. Best viewed on a wide terminal window.
 
 -g    You may want to ping the LMS machine or the logging server. (Future feature. This value is currently periodically overwritten by the gateway address.)
 
@@ -195,9 +189,9 @@ o The 'pwp' shell function lists all processes containing 'wlan' to list wlanpok
 o The 'll' function lists details for all files matching any arguments you give. 'll *.local' lists the files ending with ".local".
 o These ephemeral functions go away after closing the session. You will save time if you put them into root's "/root/.profile" file or the all users "/etc/profile" (no dot).
 
-Of course, you must have already downloaded the zip file so that you can read this manual. Transfer the file. There are several ways to do this. One way is 'tftp' (Trivial FTP). If you don't have a 'tftpd' server running, they are simple to download and install. Put the downloaded wlanpoke-0.8.0.zip in the tftpd root folder, then run:
+Of course, you must have already downloaded the zip file so that you can read this manual. Transfer the file. There are several ways to do this. One way is 'tftp' (Trivial FTP). If you don't have a 'tftpd' server running, they are simple to download and install. Put the downloaded wlanpoke-0.8.3.zip in the tftpd root folder, then run:
 
-tftp -g -l wlanpoke-0.8.0.zip -r wlanpoke-0.8.0.zip 192.168.0.4
+tftp -g -l wlanpoke-0.8.3.zip -r wlanpoke-0.8.3.zip 192.168.0.4
 
 where "192.168.0.4" is replaced by the tftpd server's ip address.
 
@@ -212,16 +206,16 @@ At this point, the zip file has been downloaded into the radio.
 The suggested installation directory is "/etc/wlanpoke". Create the directory:
   mkdir /etc/wlanpoke
 
-Regrettably, there are several versions of the release zip file: a simple flat file (no directory structure) with the file name wlanpoke.0.8.0.zip (note the period instead of hyphen), and two from the GitHub site that have different naming conventions (e.g., wlanpoke-0.8.0.zip or wlanpoke-main.zip), which duplicate the file name in an included folder, requiring an extra step.
+Regrettably, there are several versions of the release zip file: a simple flat file (no directory structure) with the file name wlanpoke.0.8.3.zip (note the period instead of hyphen), and two from the GitHub site that have different naming conventions (e.g., wlanpoke-0.8.3.zip or wlanpoke-main.zip), which duplicate the file name in an included folder, requiring an extra step.
 
 Unzip the files into the installation directory, overwriting anything there:
-  unzip -o wlanpoke-0.8.0.zip -d /etc/wlanpoke
+  unzip -o wlanpoke-0.8.3.zip -d /etc/wlanpoke
 
 See if the zip file had an included folder:
   ls -al /etc/wlanpoke
 
 If you see a folder with the same name as the zip file, that folder contains the new software. Copy or move the contents of that folder to the installation folder, overwriting any existing files:
-  mv -f /etc/wlanpoke/wlanpoke-0.8.0/* /etc/wlanpoke
+  mv -f /etc/wlanpoke/wlanpoke-0.8.3/* /etc/wlanpoke
 
 Check again to see that the included files listed below are there:
   ls -al /etc/wlanpoke
@@ -260,7 +254,7 @@ If you don't want to send messages to a logging server, use the single "-x" opti
   /etc/wlanpoke/wlanpoke.sh -x &
 although it is easier to simply not run a server, and let the software just not connect.
 
-You will probably want to enable one of the included simple "web servers," which are disabled by default. The are enabled by adding the "quick" or "slow" -W options. (The *capital* 'W' is important. A small "-w" (wait) causes wlanpoke to have a conniption waiting for "quick" seconds, which equals zero.)
+You will probably want to enable one of the included simple "web servers," which are disabled by default. The are enabled by adding the "quick" or "slow" -W options (the *capital* 'W' is important!):
   /etc/wlanpoke/wlanpoke.sh -W slow &   or     /etc/wlanpoke/wlanpoke.sh -W quick &
 
 If you want to specify a port other than the default 8080 (e.g., the standard www port 80), add -Wp #:
@@ -299,23 +293,29 @@ You can change the defaults by editing the script. Find the shell variable and c
 
 Although there are a boatload of command line options and defaults, many important characteristics are hard coded in the script. You may want to experiment with these to improve the wireless disconnection the recovery time. Here are some of the most obvious constants to change.
 
+PINGWAIT=1
+  This sets the number of seconds to wait for ping to succeed, otherwise a logged failure. This wss a -w command line option, but removed. If you have a really awful connection or very busy LAN, you might have to accommodate large ping times. In this case, set the ping failure time higher, e.g., 2 seconds or more. Or, better, improve your LAN or AP.
+
 PINGSECS=2
   * This sets the interval between 'ping' connectivity checks. Overridden by the -S command line switch.
 
 PINGRESET=6
   * This specifies the 1 or 2 second time periods (PINGSECS) to wait (2x6=12 seconds) after a ping failure before restarting the network. A ping failure may result from a network cable change, or a router reboot, or a missed packet, or a slow return > 1 second. The radio wireless system can tolerate some of this, and we don't want to restart too soon. Overridden by the -F command line switch.
 
-PINGQUICK=7
-  * This specifies the 1 or 2 second time periods (PINGSECS) to wait (2x6=12 seconds) after a ping failure before quickly resetting the network. Overridden by the -Q command line switch. Be default, this is set higher than PINGRESET to disable.
+PINGQUICK=-1
+  * This specifies the 1 or 2 second time periods (PINGSECS) to wait (2x6=12 seconds) after a ping failure before quickly resetting the network. Overridden by the -Q command line switch. Be default, this is set to -1 to disable.
 
+FRstSleepMin=12
+FRstSleepMax=60
+ * These specify the minimum and maximum times to hold off a full reset after ping fails. The hold off time is set to the minimum at launch, and is incremented if a full reset fails to recover. The default minimum of 12 is a bit agressive, and could result in one additional delay as the script resets the wireless just before it would have been reestablished. The maximum is perhaps too high (or maybe not). Weak signals < -50dbm will typically have more reception problems and take longer to establish a working connection. Try to boost your signal level.
+ A lengthy network outage (router reboot) would increment the step to the max, which would then wait the maximum time before resetting the radio during a wireless outage. Previously, the step incremented but never decremented. The current version calculates a safe step based on the last results.
 
-FRstSleepMin=1
-FRstSleepMax=120
- * These specify the minimum and maximum times to hold off after a full reset. The hold off time is incremented, up to the maximum, after a full reset, and set to the minimum after the connection is reestablished. The default minimum of 1 is a bit agressive, and could result in an additional delay as the script resets the wireless just before it would have been reestablished. The maximum is perhaps too high (or maybe not). Weak signals < -50dbm will typically have more reception problems and take longer to establish a working connection. Try to boost your signal level.
+FRStepPct=40
+  * This specifies the percentage steps of increasing time to hold off a full reset after a previous full reset has not (yet) recovered. This value is used to calculate a table of hold off times starting with the minimum and ending below the maximum.
+  To use a custom fixed step table, include a file that has shell function to generate the table, or just uncomment the existing example function and its call in the script.
 
-FRMult=5
-FRDiv=4
- * The sleep time FRstSleep is incremented after each failed full reset by 'let FRstSleep=1+FRstSleep*FRMult/FRDiv', which increments the script hold off time by the calculated amount. Adjust the default 5/4 or 25% increase as desired, e.g., 3/2 for more or 11/10 for less, etc.
+TimeFmt=":"
+  Set this to specify a timestamps format. The default ":" gives ...HH:MM:SS, "-" does ...HH-MM-SS, and a custom fully specified 'date' format, e.g., "-Isec" gives  'date' that format string. The hyphen ("-") does YYYY-MM-DD_HH-MM-SS and avoids colons, which cause problems when saving a file with a name containing that time stamp.
 
 RestartNetwork(): sleep 5
   * This allows the wireless driver to restart and reconnect before launching 'dhcpc', which gives up rather quickly. The 5 second delay makes it more likely to succeed right away. You may need to adjust this higher if it takes longer for the driver to reconnect.
@@ -324,7 +324,7 @@ LOGKEEP='3'
   Don't crash or constrain your radio by consuming all the storage with logs (use 'nc' instead). We don't know what a reasonable maximum log storage limit might be. It seems safe to consume a little over half of what syslogd's 'messages' files take, or ~250 KB.
 
 CB_SIZE=8
-  Sets the circular buffer size to capture 7 two-second statistics prior to a ping failure, plus the failure. You may want more, or can get by with less.
+  Sets the circular buffer size to capture 7 two-second statistics prior to a ping failure, plus the failure. You may want more, or can get by with fewer.
 
 Main loop: $IPFIRST == "169"
   You may want to test the second byte "154" to be more accurate. You may also want to add another test if your radio is somehow getting a bogus IP address.
@@ -335,8 +335,8 @@ Main loop: sleep 1
 
 * These constants, plus the wireless system calls, determine how long it takes the script to restore wireless connectivity. Ideally, the outage time should be short enough to not cause disruption to the playing music. Longer outages may interrupt playing, and require pressing a key to dismiss a player message, which is annoying, but not the complete disaster a reboot would be. Keeping SSH sessions alive is also a consideration: outages too long will cause an SSH session to fail, losing the session, its history, and ephemeral functions and values. The current settings under the current conditions have so far kept the music playing, with only occasional SSH sessions timing out.
 
-ResetQuick Function
-  The investigation into the root causes of the outages continues. The wireless monitoring utility wpa_cli is under suspician. Code has been added to test for its presense and to relaunch it if it is no longer running. This utility working is important to the quick reset method. The full reset method restarts the entire network stack, including wpa_cli, so it is not affected. You may wish to edit the ResetQuick function to add or remove commands as the investigation continues, then enable it (it is disabled by default).
+ResetQuick ()
+  The investigation into the root causes of the outages continues. The wireless monitoring utility wpa_cli is under suspicion. Code has been added to test for its presence and to relaunch it if it is no longer running. This utility working is important to the quick reset method. The full reset method restarts the entire network stack, including wpa_cli, so it is not affected. You may wish to edit the ResetQuick function to add or remove commands as the investigation continues, then enable it (it is disabled by default).
 
 For software modification testing, a hard wired serial connection, which survives wireless disconnection, is preferred. You can connect a serial connection plus 5 volt power (Gnd TxD RxD +5) from the radio to a reliable $4 NodeMCU wireless module programmed as a telnet to serial converter, or just run a serial cable to a 'TTL' level serial interface on a pc.
 
@@ -408,22 +408,60 @@ Log File Analysis
 
 You may wish to aid in troubleshooting the "Wireless Connectivity Loss" issue. We need clues. Examining your log files is a start.
 
-Each disconnect incident is logged. The tcp logger receives the disconnect event first, followed by the reconnect event, and then 8 status snapshots 2 seconds apart ending with the disconnect snapshot. The local log file '/var/log/wlanerr' and its rotated backups are written in real time, and log every first failed ping. First failed pings are not transmitter to the tcp logger unless the software resets the radio, and until the radio is reconnected. Each incident begins with a record separator, then the disconnect event, 8 snapshots, and the reconnect event.
+Each disconnect incident is logged. The tcp logger receives the disconnect event first, followed by the reconnect event, and then 8 status snapshots 2 seconds apart ending with the disconnect snapshot. The local log file '/var/log/wlanerr' (or e.g., '/etc/log/wlanerr') and its rotated backups are written in real time, and log every first failed ping. First failed pings are not transmitter to the tcp logger unless the script resets the radio, and until the radio is reconnected. Each incident begins with a record separator, then the disconnect event, 8 snapshots, and the reconnect event.
 
 To derive the outage time, subtract the "ping ok" time (first entry) from the failed time (second time). The result is within a few seconds. This is the network connectivity outage, but the player will take some additional time to reestablish a failed connection, so the total interruption is longer.
 
-Here is an example recovery log entry:
-2021-03-17T20:43:38-0400 MasterSB.23_072 failed 2021-03-17T20:42:57-0400 quick 2021-03-17T20:43:04-0400 reset 2021-03-17T20:43:16-0400 up 2021-03-17T20:43:35-0400 ...
+Here is an example recovery log entry, with line breaks added and some items (...) deleted:
 
-Here, the radio failed at 20:42:57 and recovered at 20:43:38, an outage of 41 seconds. The software tried a quick reset after 7 seconds, which evidently did not work, as it performed a full reset after 19 seconds. The reset process was over after 38 seconds, and a successful ping recorded after 41 seconds.
+2021-03-31_12:47:11 Ofc2S.21_0827d failed 2021-03-31_12:44:15 quick reset 2021-03-31_12:46:13 up 2021-03-31_12:46:40
+...Link Quality:24/94 Signal level:-71 dBm
+...fails 30
+... (RawFails Statistics, see below)
 
-Entries that recover after the quick reset do so immediately after the 7 second delay to verify the outage. A 7 second delay might not be noticeable. The previous software that used only full resets took 44 seconds to recover, and there were some interruptions under some circumstances, especially in the case of synchronized radios.
+Note the poor signal level and link quality, -71 dBm and 24/94. This will cause problems because the dhcp client will have difficulties obtaining an ip address and gateway, and the script will reset the system again before it can successfully complete.
+
+Here, the radio failed at 12:44:15 and recovered at 12:47:11, a huge outage of 176 seconds! The software did not try a quick reset (no entry after "quick"), and performed the 3 full resets, the last after 117 seconds. That reset process was over after 37 seconds, and a successful ping recorded after 58 seconds. The first successful ping came after 30 previous failures, which triggered 3 full resets (see below).
+
+(Entries that recover after the quick reset do so immediately after a ~7 second delay to verify the outage. This short delay might not be noticeable. The full resets take ~40 seconds to recover, with some audible interruptions under some circumstances, especially in the case of synchronized radios. However, the quick reset had side effects that made the system unreliable, so it has been disabled pending further investigation.)
+
+Normally it takes 19 seconds after the first ping failure until the reset starts. The script is spending a significant amount of time doing this and that between its default 2 second sleep periods. Here the average cycle time is about 3 seconds, 1 second more than the specified 2 seconds. Because the software calculates seconds as trials * sleep seconds, the 'seconds' statistics and parameters are too low by 50%. No attempt other than this note is made to compensate for this.
+
+RawFails Statistics
+
+(This rather inactive example comes from the now too-quiet WiFi environment here. Yours may be more exciting.)
+
+The disconnect and reconnect entry above includes a 2-line statistics portion with significant event counters, and a 'Failed Pings' array.  These may be helpful in setting the optional parameters -S -Q -F (see above) and the 'Reset Hold off Time' step values. Another array holds data to evaluate the hold off time step increment algorithm.
+
+The statistics portion consists of 2 lines. This data is also included on the RawFails web page. Here are then statistics from the same example above:
+
+Ping 2s-1q6f Evants, Fails[0..30]:   Qr:0 Fr:3   Wr:0 Wc:0  [ 16898 7 0 1 0 0 0 0 30:1 ]
+Step 2, limit:results: [ 12:12, 18:18, 26:18, 37: 53: 75: 106: ]   Wlan: Rate=36 Quality:24/94 Signal level:-71 retries:1
+
+The first line begins with a settings summary, followed by some event counters, then a vector of 'Fails.' The events are Quick Reset (Qr), Full Reset (Fr), wpa_cli Restart (Wr), and wpa_cli process changed (Wc).
+
+The default -S, -Q, and -F settings of 2, -1, and 6, respectively create array indexes of [0..7] to display the number of failed pings counted before the system has a successful ping. Besides the 0 slot, one slot more (7) than the full reset setting is always displayed. Counts of recoveries with prior failures greater than those are also shown as "Failures:Count". Here, the radio recovered after 30 failed pings, so the index [30] value was incremented, and the entry is displayed as "30:1" this first time, and then "30:2" a second time, and so on. This occurs after multiple full resets as the script increments the hold time step and waits for longer times to recover.
+
+This example shows 0 quick resets (quick was disabled), 3 full resets, 0 wpa_cli relaunch, and 0 wpa_client process changes not caused by the full resets.
+
+The second line is a summary of full resets, with the number of pings before recovery (or subsequent reset) indexed by reset hold off time, "Limit:Failures" both reported in 'script seconds' (not ping trials). Each "Limit:" entry is followed by a comma separated list of the most recent failures, latest first. This information can be used to evaluate how well the limits are doing. We hope that higher limit entries will be empty. Entries there mean that the software waited increasingly longer times for the system to recover after a full reset. But if the network goes down for any lengthy time, then the last entry will have the a large number as the radio again and again resets only to find no connection.
+
+In this example, the first hold-off time step, with a value of 12 seconds, displayed one entry of 12 seconds (the max) additional ping failure time. The full reset itself takes about 20 seconds to complete. The value of 12 indicates that the full reset #1 failed. An entry of 0 would mean no failed pings after the reset, meaning that the reset process took enough time for the system to recover before trying the next ping, and there was no chance of a second reset.
+
+The subsequent entries (... 18:18, 26:18, 37: ...)
+Indicate that the system had a failed reset #2 with an 18 second limit, then a successful reset #3 result with 18 second recovery with a 26 second limit. Note that the 18 second result would have just made the 18 second limit, but before reset #2, the radio had not recovered by the 18 second limit.
+
+The script left the current step at 2. It computed that the step 1 limit of 18 would not be prudent because the last result (18) would have only barely succeeded.
+
+Previous Version
+
+This example is from an earlier date when there was more adverse WiFi activity, but no low signal level testing. The quick, full, wpa_cli reset counters were in array indexes [8..10].
 
 The disconnect and reconnect entry includes a vector that may be helpful in setting the optional parameters -S -Q -F (see above). Here is an example entry with a footer added to aid reading:
 
-Ping 2s3q6f Fails[9]: 9687 9 0 0 0 18 0 0 19 1 0
+Ping 2s3q6f Fails[9]: 9687 9 0 0 0 18 0 0 19 1  0
 (--- array index ----    0 1 2 3 4  5 6 7  8 9 10 )
-(--- activity -------   ok     q      f    q f    )
+(--- activity -------   ok     q      f    q f  w )
 
 In this example, the -S, -Q, and -F settings were the default 2, 3, and 6, respectively. With the full reset parameter set to 6, array indexes [0 - 7] display the number of failed pings counted before the system had a successful ping. Array indexes [8] and [9] count the number of times the quick and full reset actions were performed. We would expect index [7] to be zero because the full reset also sets the failed ping counter to 1 (to keep trying), so the counter wraps from 6 to 1. Index [10] count the restarts after failure of the wpa_cli network process, but none were recorded.
 
@@ -440,22 +478,6 @@ Ping 2s3q6f Fails[9]:   460  20 1 0 0  3 0 0  4  1 0
 Ping 2s3q6f Fails[9]: 15851  49 0 0 1 13 2 0 20  4 0    (2nd floor)
 (--- array index ----     0   1 2 3 4  5 6 7  8  9 10 )
 (--- activity -------    ok       q      f    q  f    )
-
-
-Earlier Software Example
-
-You may skip this section for software prior to 0.8.0, which combined the failed pings with the reset counters, making analysis more complicated:
-
-Ping 2s3q6f Fails[11]: 58702 198 3 95 5 67 5 18 0 0
-(--- array index ----      0   1 2  3 4  5 6  7 8 9 )
-
-In this example, the -S, -Q, and -F settings were the default 2, 3, and 6, respectively.
-
-By far, the pings succeed with zero intervening failures, so the [0] number is large (58702). This radio had its own recovery with 198 one-ping failures and 3 two-ping failures. In earlier tests, radios suffering 3 ping failures did not recover on their own (the [3] slot showed zero events), so the default quick limit was set at 3. When the quick limit [3] or full limit [7] was reached, the software recorded this, even though this was not a recovery. This was done to see whether the quick method worked or not. If the quick method worked quickly enough, there would not be an increment to the full counter. The full [7] slot indicates either a recovery or a full reset. Recoveries from a full reset would be shown in the [1] or higher slots because the full recovery sets the failed ping counter to 1.
-
-Here the quick limit [3] value was 95. The software did a quick reset to the WLAN (by reassociating with the access point). There were 5, 67, and 5 cases of the quick reset restoring connectivity after an additional 1, 2, and 3 trials, respectively. There may have been recovery after 4 trials, but that information is obscured because the full limit slot would also increment as the reset is started. As mentioned earlier, recovery from the full reset would be shown in the [1] plus slots. We expect the sum of the entries above the quick reset limit to equal the count at that limit (95 = 5+67+5+18).
-
-In this example, the radio recovered from a ping loss on its own at least 198+3-18=183 times. These likely would not be noticed. It recovered from the quick reset at least 5+67+5=77 times. It may have recovered additionally some portion of 18 times, as well. This example suggests that the quick reset method is a valuable addition to the script.
 
 
 Desktop Analysis
@@ -480,11 +502,19 @@ RawFails Summary Report Analysis
 
 The optional 'slow' web server can return a 'RawFails' request to produce, for example:
 
-bsmt /etc/wlanpoke/wlanpoke.sh 0.7.2 3/18/2021 launched (slow) Thu Mar 18 14:19:33 EDT 2021
-Sat Mar 20 13:58:48 EDT 2021 ( 13:58:48 up 22 days, 20:29, load average: 0.08, 0.45, 0.61 )
-Ping 2s3q6f Fails[9]: 65506 120 0 0 1 74 2 0 81 4 0
+LR wlanpoke.sh 0.8.3.4 4/2/2021 launched 2021-04-02_10:45:24 Options: -W slow -d /etc/log/
+2021-04-02T11:44:05-0400 ( 11:44:05 up 8 days, 10:49, load average: 1.23, 1.30, 1.24 )
+Ping 2s-1q6f Events, Fails[0..7]:    Qr:0 Fr:1   Wr:0 Wc:0  [ 1137 0 0 0 0 0 1 0 ]
+Step 0, limit:results: [ 12:0, 18: 26: 37: 53: ]   Wlan: Rate=36 Quality:36/94 level:-59 retries:1
 
-The report consists of 3 lines, consisting of radio identification, wlanpoke version, and launch time, followed by the report time and date plus the radio uptime, then finally the Fing Fails report mentioned above. The gs.bat or gs.sh scripts automate fetching these reports, but they must be customized before use, and they require 'curl' utility for use.
+The report consists of 4 lines, consisting of the radio's name, wlanpoke version, launch time, and launch options. The second line is the report time and the radio uptime report. The third and forth lines are the ping fails and recovery reports mentioned above. The gs.bat or gs.sh scripts automate fetching these reports, but they must be customized before use, and they require 'curl' utility for use.
+
+You don't need a browser or curl to enjoy this view. Just ssh into the radio, and enter the following:
+  cd /etc/wlanpoke
+  export REQUEST=RawFails
+  ./awstats.sh
+
+to display the report. The script needs to run from the wlanpoke app directory. The exported RESUEST value tells the script what to display.
 
 
 Uploading Log Files to a Forum
@@ -495,7 +525,7 @@ Here is one (with the original identifiers themselves de-identified!) example:
 
 sed 's/Rooster/Radio1/g;s/Chicken/Radio2/g;s/Plaza/Radio3/g;s/Forest/Radio4/g;s/Desert/Radio5/g;s/Marsh/Radio6/g;s/Garden/Radio7/g;s/HomeAC/AP1/g;s/HomeG/AP2/g;s/.1.2/.0.1/g;s/.1.1/.0.1/g;s/\.1\(.\)_/.0\1_/g' t1121.log > t1121_did.log
 
-With 7 radios (1 is missing...) and 2 access points, the line is quite long. The radio names, access point names, and ip addresses are changed in a consistent way, helpful for subsequent uploads. A semicolon (';') separates each match. Of course, upload only the "t1121_did.log"!
+With 7 radios and 2 access points, the line is quite long. The radio names, access point names, and ip addresses are changed in a consistent way, helpful for subsequent uploads. A semicolon (';') separates each match. Of course, upload only the "t1121_did.log"!
 
 Compress the resulting file using the very common zip deflate method. A separate "LAN.txt" file listing your wireless access point(s) and router make(s), model(s), and version(s) would be very helpful to identify problematic access points and routers.
 
@@ -511,9 +541,10 @@ rcS.local.example   example rcS.local script
 ahttpd.sh           optional web server script
 arequest.sh         used by the slow web server to parse requests
 awstats.sh          generates a web page for the optional server
-uplogs.sh           uploads logs to a tftpd server
+uplogs.sh           script to upload logs to a desktop tftpd server
 history.txt         To Do and history (change log)
-gpl3.txt            Short version of GPL3 license
+LICENSE.md          Short version of GPL3 license
+README.md           first part of this manual.txt plus news...
 
 end
 
