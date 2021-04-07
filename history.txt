@@ -3,6 +3,8 @@
 
 To Do:
 
+2021-04-06.02	Enh: Implement threshold for Gaps report to ignore just 1 (or 2) missed ping(s).
+					This would eliminate the inconsequential 1 ping outages.
 
 2021-04-02.09	Enh: Limit potential out of control /etc/log/fping.txt.log.
 					-> need to use the logfile rotation to do this, not now
@@ -23,6 +25,36 @@ To Do:
 
 
 History:
+
+
+0.8.4.1 04/06/2021
+
+
+2021-04-06.01	Enh: Report of recent reset a la Gaps report.
+					-> Resets report same as Gaps, but of resets. Easy.
+
+
+0.8.4.0 04/05/2021
+
+2021-04-03.04	Enh: record vector of recent outages in seconds in seconds.
+					-> include the current - or + setting as first item in report, e.g.
+					Add the current status and report timestamp to the GapList report to allow calculating the clock time of each outage. To compute the elapsed seconds to an entry, add the absolute values of the numbers to that entry, then subtract that from the report time.
+
+0.8.3.5 04/03/2021
+
+
+2021-04-03.02	Enh: include unix time 'uxtime' at launch, certain messages, or use to calculate elapsed seconds.
+					Would be nice to have kernel elapsed time (uptime?) as well...
+					-> done. New tu* variables measure last connection outage and working times for reports.
+
+2021-04-03.03	Enh: Do not reset FullFails on successive resets so the FullFails counter is more accurate
+					However, it does not include the sleep delays of additional resets, 
+						so it should be adjusted to predict the number of failures that would have occurred.
+					CXL: No, that is not the same. The subsequent resets create new situations. 
+						 The new situation results indicates the latest condition of the link.
+
+2021-04-03.01	Enh: include last RawFails value in step line of RawFails report!
+					-> done.
 
 
 0.8.3.4 04/02/2021

@@ -6,7 +6,7 @@
 #
 # This program is free software under GPL3 as stated in gpl3.txt, included.
 
-Version="0.1.5 4/2/2021"
+Version="0.1.6 4/6/2021"
 
 psEntry=`ps ax | grep "wlanpoke.sh -" | grep -v grep`
 CmdLine=${psEntry##*/sh }
@@ -53,7 +53,7 @@ else
   echo `date` "(" `uptime` ")"
   echo
   iwconfig eth1
-  echo "</pre><h4>wlanpoke test settings (s,q,f) and failed pings [0..n] prior to recovery</h4><pre>"
+  echo "</pre><h4>Ping: settings, events, and failed pings [0..n]; Step: full reset results, status; Gaps, Resets: # and recents</h4><pre>"
   cat ${LOGDIR}fping.txt
   echo "</pre><h4>recent AP scan results</h4><pre>"
   wpa_cli scan_results
