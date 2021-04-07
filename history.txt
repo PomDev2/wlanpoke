@@ -29,10 +29,12 @@ History:
 
 0.8.4.1 04/06/2021
 
+2021-04-07.01	Bug: mostly blank statistic web page without -d /etc/log/ command line option.
+					-> awstats.sh Version="0.1.7 4/7/2021"
+					-> '| grep "\-d"' restored, was inadvertently deleted
 
 2021-04-06.01	Enh: Report of recent reset a la Gaps report.
 					-> Resets report same as Gaps, but of resets. Easy.
-
 
 0.8.4.0 04/05/2021
 

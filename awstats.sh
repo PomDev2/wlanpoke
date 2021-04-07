@@ -6,7 +6,7 @@
 #
 # This program is free software under GPL3 as stated in gpl3.txt, included.
 
-Version="0.1.6 4/6/2021"
+Version="0.1.7 4/7/2021"
 
 psEntry=`ps ax | grep "wlanpoke.sh -" | grep -v grep`
 CmdLine=${psEntry##*/sh }
@@ -15,7 +15,9 @@ Options=${psEntry##*.sh }
 #-W slow -d /etc/log/
 
 #LOGDIR=`ps ax | grep "wlanpoke.sh -" | grep "\-d" | sed 's/.*-d \([^ ]*\).*/\1/g'`
-LOGDIR=`echo $Options | sed 's/.*-d \([^ ]*\).*/\1/g'`
+#LOGDIR=`echo $Options | sed 's/.*-d \([^ ]*\).*/\1/g'`
+# 0.1.7: | grep "\-d" restored, inadvertently deleted
+LOGDIR=`echo $Options | grep "\-d" | sed 's/.*-d \([^ ]*\).*/\1/g'`
 if [[ -z "$LOGDIR" ]] ; then
   LOGDIR="/var/log/"
 fi
