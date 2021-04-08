@@ -3,9 +3,6 @@
 
 To Do:
 
-2021-04-06.02	Enh: Implement threshold for Gaps report to ignore just 1 (or 2) missed ping(s).
-					This would eliminate the inconsequential 1 ping outages.
-
 2021-04-02.09	Enh: Limit potential out of control /etc/log/fping.txt.log.
 					-> need to use the logfile rotation to do this, not now
 
@@ -26,6 +23,13 @@ To Do:
 
 History:
 
+
+0.8.4.2 04/07/2021
+
+2021-04-06.02	Enh: Implement threshold for Gaps report to ignore just 1 (or 2) missed ping(s).
+					This would eliminate the inconsequential 1 ping outages.
+					-> done, but now the report is pretty uninteresting in a quiet environment.
+					-> default set to 0 to disable.
 
 0.8.4.1 04/06/2021
 

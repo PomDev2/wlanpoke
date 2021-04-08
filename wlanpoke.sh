@@ -4,7 +4,7 @@
 #
 # This program is free software under GPL3 as stated in LICENSE.md, included.
 
-Version="0.8.4.1 4/6/2021"
+Version="0.8.4.2 4/8/2021"
 
 LOGDIR="/var/log/"      # directory to store 'logs'. Alternative for troubleshooting: '/etc/log' (create directory first)
 GWTXT="wgw.txt"         # where to write router's gateway ip or /dev/null
@@ -35,7 +35,9 @@ FRWaitStepPct=40        # instead of fixed steps, calc array from % increase.
 
 TimeFmt=":"             # timestamp format. ":" for HH:MM:SS, "-" for HH-MM-SS, otherwise specified 'date' format, e.g., "-Isec" (0.8.3.1)
 GapsListMax=120         # Maximum size of the LIFO GapsList report. (0.8.3.5c)
+GapsTrackF=0            # Track ping failures > than this number, e.g., 1 (0.8.4.2)
 ResetsListMax=120       # Maximum size of the LIFO ResetsList report. (0.8.4.1)
+
 
 IFACE="eth1"            # the wlan is not wlan0 but rather eth1
 GATEWAY="?"             # ip address of the router's gateway ip.
@@ -848,6 +850,7 @@ tuWorkingLast=0        # last working period seconds (0.8.3.5)
 GapsList=""            # LIFO report of last outage times, trimmed to $GapsListMax  (0.8.3.5)
 GapsNo=0               # number of outages
 
+
 Gaps_inc () {
   if [[ ${#GapsList} -gt $GapsListMax ]] ; then
     GapsList=${GapsList%\-*}
@@ -1049,7 +1052,7 @@ FRstWaitStats_save() {
   #echo "-Disconnected+Connected $GapsList" >> $FPINGLOG
   #echo "-Gap+OK $GapsNo: $GapsList" >> $FPINGLOG
   GapsNow   # update global $tuGapsNow. $(GapsNow) doesn't.
-  echo "Gaps:$GapsNo @$tuGapsNow -Gap+OK secs: $GapsLast,$GapsList" >> $FPINGLOG
+  echo "Gaps (>$GapsTrackF):$GapsNo  @$tuGapsNow -Gap+OK secs: $GapsLast,$GapsList" >> $FPINGLOG
   ResetsNow
   echo "Resets:$ResetsNo @$tuResetsNow -Gap+OK secs: $ResetsLast,$ResetsList" >> $FPINGLOG          # (0.8.4.1)
 }
@@ -1195,6 +1198,8 @@ PingOk=0                                # 0.8.0.0: count of ok pings to hold off
 FRstCount=0                             # 0.8.0.0: count of current full resets, reset when ping succeeds
 NextFull=$PINGRESET                     # 0.8.1.0: NextFull=n+FRWaitSecs/PINGSECS
 iPrevWlan=1
+
+tuFirstFail=0                           # save time of first failure (0.8.4.2)
 
 while true; do
 
@@ -1373,9 +1378,13 @@ while true; do
       iPrevWlan=1
     fi
 
+    if [[ $nF -eq 0 ]] ; then
+      tuFirstFail=$(Time_U)             # save time of first failure (0.8.4.2)
+    fi
     # Calculate last working seconds (0.8.3.5)
-    if [[ $tuGapStart -eq 0 ]] ; then
-      tuGapStart=$(Time_U)
+    # Ignore ping failures fewer than $GapsTrackF (0.8.4.2)
+    if [[ $tuGapStart -eq 0 ]] && [[ $nF -ge $GapsTrackF ]] ; then
+      tuGapStart=$tuFirstFail           # was tuGapStart=$(Time_U) (0.8.4.2)
       tuWorkingLast=$(( tuGapStart - tuGapEnd ))
       tuGapEnd=0
     fi
