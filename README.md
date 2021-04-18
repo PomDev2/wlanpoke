@@ -1,7 +1,7 @@
 # wlanpoke
 Mitigate Wireless Connectivity Loss in Squeezebox Radios
 
-Version 0.8.4.1
+Version 0.8.5.5
 
 Introduction
 
@@ -24,6 +24,8 @@ Please address your responses to the slimdevices forums  https://forums.slimdevi
 Use the latter for more technical questions and discussions.
 
 News:
+
+Version 0.8.5 enables the quick reset by default and improves the RawFails Resets report to show the effect of the quick reset more clearly.
 
 Version 0.8.4 adds two measures of network outages. A Gaps report lists recent outages as gaps and connected times in real seconds. A Resets report similarly lists recent outages resulting in resets. A unix time stamp has been added to the launch time and some other messages, and is used to accurately calculate elapsed seconds. A bug that produced a mostly blank status web page and RawFails report has been fixed.
 

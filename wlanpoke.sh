@@ -4,7 +4,7 @@
 #
 # This program is free software under GPL3 as stated in LICENSE.md, included.
 
-Version="0.8.4.2 4/8/2021"
+Version="0.8.5.5 4/18/2021"
 
 LOGDIR="/var/log/"      # directory to store 'logs'. Alternative for troubleshooting: '/etc/log' (create directory first)
 GWTXT="wgw.txt"         # where to write router's gateway ip or /dev/null
@@ -18,13 +18,17 @@ WSERVERPORT="8080"      # port for optional web server (0.7.0)
 ERRLOG="wlanerr.log"    # store results of last good ping
 LOGMAX='50'             # KB (x 1024) 1/4 of /var/log/messages.0, should be reasonable. Set to 0 to disable local log. (0.5.2)
 LOGKEEP='3'             # highest rotated log number to keep. Set to 't' to trim instead of rotate log file
-LOGDELIM="-"            # delimiter between incident records, appended by 'print' [("\n\n") and "--rec--" are too much] (0.5.0)
+LOGDELIM="-"            # delimiter between incident records, appended by 'print' (0.5.0)
 APPDIR=$(dirname "$0")  # where the app files are located...
 
 PINGWAIT=1              # 0.8.1: deprecated. wait seconds for ping to succeed, otherwise a logged failure.
 PINGSECS=2              # number of seconds to delay between ping tests. (0.7.0)
 PINGRESET=6             # number of times for ping to fail before full reset after successful ping. (0.7.0)
-PINGQUICK=-1            # number of times for ping to fail before quick reset. 0.8.1: was 7 0.7.6: was 3. Disable when not testing. (0.7.0)
+PINGQUICK=3             # number of times for ping to fail before quick reset.
+                        # 0.8.4.3 was -1 0.8.1: was 7 0.7.6: was 3. Disable when not testing. (0.7.0)
+#Quick_method=wpa       # No improvement: set to a quick reset mode, under development. (0.8.5.0)
+#Quick_method=ifdnup76  # No improvement (0.8.5.5)
+
 
 #FRWaitSecsMin=12       # Calculated == PINGRESET * PINGSECS. minimum time to hold off after a full reset.   0.8.1.0: 6 trials x 2 secs/trial
 FRWaitSecsMax=60        # maximum time to hold off another full reset after a previous unsuccessful one. 0.8.2.7e: was 120
@@ -37,7 +41,7 @@ TimeFmt=":"             # timestamp format. ":" for HH:MM:SS, "-" for HH-MM-SS, 
 GapsListMax=120         # Maximum size of the LIFO GapsList report. (0.8.3.5c)
 GapsTrackF=0            # Track ping failures > than this number, e.g., 1 (0.8.4.2)
 ResetsListMax=120       # Maximum size of the LIFO ResetsList report. (0.8.4.1)
-
+FullResetInit=0         # full restart wireless before starting (0.8.5.4)
 
 IFACE="eth1"            # the wlan is not wlan0 but rather eth1
 GATEWAY="?"             # ip address of the router's gateway ip.
@@ -125,7 +129,7 @@ Help() {
     echo " -z * sleep seconds (default $SLEEP)"                                         # 0.5.2 was -s
     echo " -l * log level 0-8 (default $LOGLEVEL)"
 #    echo " -vt  enable verbose tcp logging of link quality statistics (default $TSTSTATS)"     # 0.8.2.2: deprecated, removed
-    echo " -R   restart wireless network now and exit"
+    echo " -R   full restart wireless before starting"                 # start after killing existing script. Was "...network now and exit" (0.0.5.4)
     echo " -k   kill (stop) any running $0 script and exit"
     echo " -c   show copyright and license notice and exit"
     echo " -h   help and version ($Version)"
@@ -174,11 +178,11 @@ Time_U () {
 tuLaunch=$(Time_U)
 tsLaunch=$(Time_S)
 
-# returns number of seconds since argument, or since launch if argument is null or <= 0
+# returns number of seconds since argument, or since launch if argument is null or <= 0   0.8.5.3: start was Start 1 pl
 Elapsed_get () {
   local now=$(Time_U)
   local start=$1
-  if [[ -z "$Start" ]] || [[ $start -le 0 ]] ; then
+  if [[ -z "$start" ]] || [[ $start -le 0 ]] ; then
     start=$tuLaunch
   fi
   echo $(( now - start ))
@@ -217,12 +221,12 @@ ADTmsg=""                                       # global for other uses
 
 Log_addDateTime () {
   #echo "Log_addDateTime"
-  ADTmsg=$(echo "$(Time_S) $HOSTNAME.$IPLAST"_"$VerSign: $*")   # 0.8.3.1 $(Time_S) was `date -Iseconds`
+  ADTmsg=$(echo "$(Time_S) $HOSTNAME.$IPLAST"_"$VerSign: $*")
   echo $ADTmsg
   echo $ADTmsg >> $ERRLOG                       # LogFile_save $ADTmsg
-  #echo $msg | nc -w 3 $TCPLOG $TCPPORT         # might work by now.
+  #echo $ADTmsg | nc -w 3 $TCPLOG $TCPPORT      # might work by now.
 }
-
+# Log_addDateTime "Hey, does this work?"
 
 # 0.8.0.0: no longer used. Rely on wpa_cli to signal this, or just wait for dhcpc to do it itself when it feels like it.
 Dhcp_renew() {                          # 0.7.5.2: try to renew the lease ourselves as a last resort.
@@ -238,17 +242,37 @@ wpa_cli_PID=`pidof wpa_cli`             # ResetQuick needs this running, or it h
 
 # 0.7.5.2: Various commands (below) were tried in ResetQuick(), but renewing the lease seems to be best.
 # However, it is supposed to happen because wpa_cli initiates a wpa_action to do that.
-# Doing that in ResetQuick trys ot renew the lease before the reassociation, which takes some time, and fails.
+# Doing that in ResetQuick tries to renew the lease before the reassociation, which takes some time, and fails.
 # Make sure wpa_cli is running instead.
     # 0.7.5.0: do it again just in case a new wpa_cli hasn't fully come on-line.
     # 0.7.5.1: unreliable. it executes before the wireless has reassociated. rely on wpa_cli -a to request renew lease.
     # Dhcp_renew                        # this happens before the reassociation.
 
 ResetQuick() {                          # 0.7.4 new requirement: keep jive happy 0.7.0
-    DTQRST=$(Time_S)                    # 0.8.3.1: was `date -Iseconds`
-    Log_addDateTime "Resetting wlan... $IFACE"                  # 0.8.0.0 log this activity
+    DTQRST=$(Time_S)
+    Log_addDateTime "Quick: Resetting wlan... $IFACE"            # 0.8.0.0 log this activity
+    if [[ "$Quick_method" == "wpa" ]] ; then                     # conditional to add extra activities. (0.8.5.0)
+      killall wpa_cli
+      # possible conditional here ... if [[ "$Quick_method" == "supplicant" ]] ; then
+      Log_addDateTime "killall wpa_supplicant"
+      killall wpa_supplicant
+      Log_addDateTime "launch wpa_supplicant"
+      /usr/sbin/wpa_supplicant -B -Dwext -ieth1 -c/etc/wpa_supplicant.conf
+
+      Log_addDateTime "launch wpa_CLI"
+      /usr/sbin/wpa_cli -B -a/etc/network/wpa_action
+      wpa_cli_PID=`pidof wpa_cli`                                # don't count this as an external restart.
+    elif [[ "$Quick_method" == "ifdnup76" ]] ; then              # for older software. (0.8.5.5 2 pls)
+      Log_addDateTime "if down"
+      ifconfig $IFACE down
+    fi
+    Log_addDateTime "wpa_cli reassociate... $IFACE"              # 0.8.0.0 log this activity
     wpa_cli reassociate
-    DTEND=$(Time_S)                     # 0.8.3.1: was `date -Iseconds`
+    if [[ "$Quick_method" == "ifdnup76" ]] ; then
+      Log_addDateTime "if up"
+      ifconfig $IFACE up
+    fi
+    DTEND=$(Time_S)
     Log_addDateTime "Quick: waiting for successful ping..."      # 0.8.0.0 log this activity
 }
 
@@ -260,7 +284,7 @@ ResetQuick() {                          # 0.7.4 new requirement: keep jive happy
 #Mar 26 21:31:06 root: Starting wpa_supplicant
 
 RestartNetwork() {
-    DTRST=$(Time_S)                # 0.8.3.1: was `date -Iseconds`
+    DTRST=$(Time_S)
     Log_addDateTime "Full: Stopping and restarting wlan..."         # 0.8.2.5 0.8.0.0 log this activity #echo $DTRST "Stopping and restarting wlan..."
     /etc/init.d/wlan stop && /etc/init.d/wlan start
     # kill any remaining udhcpc before sleeping. Above stop also takes time.
@@ -270,7 +294,7 @@ RestartNetwork() {
     wpa_cli_PID=`pidof wpa_cli`                                     # 0.8.3.0 don't count this as an external restart.
     Log_addDateTime "Restarting dhcp"                               # 0.8.0.0 log this activity #echo "Restarting dhcp"
     udhcpc -R -a -p/var/run/udhcpc.eth1.pid -b --syslog -ieth1 -H$HOSTNAME -s/etc/network/udhcpc_action
-    DTEND=$(Time_S)                # 0.8.3.1: was `date -Iseconds`
+    DTEND=$(Time_S)
     Log_addDateTime "Full: waiting for successful ping..."       # 0.8.0.0 log this activity
 }
 
@@ -302,14 +326,16 @@ case $1 in
         -z )    CheckVal $1 $2  ;   shift   ;   SLEEP="$1"      ;;    # 0.5.2 was -s
         -l )    CheckVal $1 $2  ;   shift   ;   LOGLEVEL="$1"   ;;    # converted to integer
 #        -vt )   TSTSTATS="yes"  ;;  # 0.5.0                          # 0.8.2.2: deprecated, removed
-        -R )    RestartNetwork  ;;
+#       -R )    RestartNetwork            ;   exit 0  ;;              # 0.8.3.4: added "; exit 0" forgot to exit...
+        -R )    FullResetInit=1                       ;;              # wait until old script killed, then restart. (0.8.5.4)
         -k )    KillApp                   ;   exit 0  ;;
-        -c )    cat "$APPDIR"/LICENSE.md  ;   exit 0  ;;        # 0.7.3 was gpl3.txt
+        -c )    cat "$APPDIR"/LICENSE.md  ;   exit 0  ;;              # 0.7.3 was gpl3.txt
         -h )    Help            ;;
         * )     echo "Unsupported argument: '"$1"'" ;   exit 1
     esac
     shift
 done
+
 
 # -----------------------------------------
 # Parameter Expansion and Adjustment
@@ -404,9 +430,7 @@ KillApp                         # kill any app still running
 # we are the new app process
 PID=$$                          # not $!
 echo "$PID" > $PIDFILE
-
 echo "Running as $PID"
-
 
 # 0.7.1 had better change directory to the application folder to find those ./ files.
 #echo "$0  $APPDIR" `pwd`
@@ -435,7 +459,7 @@ IPLAST=$IPADDR              # last byte for identification. Initially IPADDR for
 
 # hello log on to the logging server
 if [[ -n "$TCPLOG" ]] ; then
-  # 0.8.3.4: added $Options 0.8.3.1: $(Time_S) was `date -Iseconds`
+  # 0.8.3.4: added $Options
   echo "$(Time_S) $HOSTNAME.$IPLAST"_"$VerSign wlanpoke $Options $PID at uptime:" `uptime` | nc -w 3 $TCPLOG $TCPPORT
 fi
 
@@ -450,6 +474,12 @@ if [[ -f "$FPINGLOG" ]] ; then
   #echo `date -Iseconds` "wlanpoke $PID, previous $timestamp:" `cat $FPINGLOG` "appended to $FPINGLOG.log"
   echo `date -Iseconds` "wlanpoke $PID, previous $timestamp:" `cat $FPINGLOG` >> "$FPINGLOG.log"
 fi
+
+# wait until old script killed, then full reset. (0.8.5.4)
+if [[ $FullResetInit -gt 0 ]] ; then
+  RestartNetwork
+fi
+
 
 # -----------------------------
 # Local LogFile stuff 0.5.2 new
@@ -568,7 +598,7 @@ LogFile_limit () {
 #  (nothing) save ERRLOGLAST, "RS" record separator, FileName that file if exists, otherwise all the arguments concatenated.
 LogFile_save () {
   # Save a log file unless its maximum size is zero
-  if [[ "$LOGMAX" -gt 0 ]] ; then
+  if [[ $LOGMAX -gt 0 ]] ; then                 # was "$LOGMAX"
     # Trim the log file, if it exists, to a specified size
     LogFile_limit                               # rotate or prune oldest entry if too log file too large
     # append the current error report, or the argument if any
@@ -590,7 +620,7 @@ LogFile_save () {
 # say hello to the log
 LogFile_save "RS"                               # 0.7.2: include a separator
 # 0.8.3.4: added $Options
-LogFile_save "$(Time_S) $HOSTNAME.$IPLAST"_"$VerSign wlanpoke $Options $PID at uptime:" `uptime`    # 0.8.3.1: $(Time_S) was `date -Iseconds`
+LogFile_save "$(Time_S) $HOSTNAME.$IPLAST"_"$VerSign wlanpoke $Options $PID at uptime:" `uptime`
 
 
 # -----------------------------------------
@@ -682,6 +712,14 @@ IFS='
 # Link Status for the Circular Buffer
 # -----------------------------------------
 
+AP_get () {
+  local essid=`iwconfig $IFACE | grep 'ESSID' | cut -d':' -f2`
+  local bssid=`iwconfig $IFACE | grep -o 'Point: .*' | cut -d':' -f5,6,7`
+  echo $essid $bssid
+}
+#AP_get
+#d=$(AP_get) ; echo $d
+
 # GetStats SaveStats UploadStats interface to main loop
 LASTSTAT=''
 WpaST="none"                            # 0.8.2.0: wpa_cli status report has COMPLETED and ip or other...
@@ -689,7 +727,8 @@ WpaST="none"                            # 0.8.2.0: wpa_cli status report has COM
 # 0.8.2.0: added "status: $WpaST" add additional stats here - ping time might be userful.
 GetStats () {
   # # echo GetStats
-  LASTSTAT=$(Time_S)":"`iwconfig eth1 | grep -E -i 'Rate|Quality|excessive'` # 0.8.3.1: $(Time_S) was `date -Iseconds`
+  LASTSTAT=$(Time_S)":"`iwconfig eth1 | grep -E -i 'Rate|Quality|excessive'`
+  LASTSTAT=$LASTSTAT" "$(AP_get)                          # add AP ESSID and BSSID (0.8.5.1)
   LASTSTAT=$LASTSTAT" status $WpaST "`cat $PINGLOG | grep -i 'time' | cut -d ' ' -f7`
 
   # 0.5.2 esperimental: add lengthy 'wpa_cli scan_results' to see if the scanner is losing the AP.
@@ -707,7 +746,6 @@ GetStats () {
 SaveStats () {
   oldIFS=$IFS
   CB_getAll
-  # 0.8.3.1: $(Time_S) was `date -Iseconds`
   IFS='^J'
   echo $(Time_S) $HOSTNAME.$IPLAST"_"$VerSign "Link Statistics" > $STATLOG
   echo $outA >> $STATLOG
@@ -927,9 +965,9 @@ FRWaitSecs_init () {
   local w=$FRWaitSecsMin
   local pct=$(( FRWaitStepPct + 100 ))
   FRWaitStepLast=0
-  echo -n "$FRWaitStepPct% steps <= $FRWaitSecsMax: "
+  decho 5 -n "$FRWaitStepPct% steps <= $FRWaitSecsMax: "     # decho 5 was echo 3 places (0.8.5.1)
   while true; do
-    echo -n $w" "
+    decho 5 -n $w" "
     local R=aFRs$FRWaitStepLast
     eval $R=$w
     w=$(( (++w * pct)/100 ))
@@ -938,7 +976,7 @@ FRWaitSecs_init () {
     fi
     _z=$(( ++FRWaitStepLast ))
   done
-  echo " Max Index $FRWaitStepLast"
+  decho 5 " Max Index $FRWaitStepLast"
 }
 FRWaitSecs_init
 
@@ -1038,6 +1076,11 @@ FRstWait_calculate () {
 # PINGSECS=2 ; FRstStep=0 ; FRstWait_calculate 44 ; echo $FRstStep
 # SSout="12: 16: 25: 32: 48:"
 
+# remove irritating extra " (>0)" (0.8.5.3)
+GapsTrackFmsg=''
+if [[ $GapsTrackF -gt 0  ]] ; then GapsTrackFmsg=" ""(>$GapsTrackF)" ; fi
+echo "$GapsTrackFmsg"
+
 FRstWaitStats_save() {
   #FailedPings_getAll
   FRstWaitStats_getAll
@@ -1045,18 +1088,19 @@ FRstWaitStats_save() {
   #echo -n "Recovery or reset by hold off seconds: $SSout" >> $FPINGLOG
   # 0.8.3.1: include the signal level at that time
   # 0.8.3.4: improve report
-  LASTSTAT=`iwconfig eth1 | grep -E -i 'Rate|Quality|excessive'`
-  #echo "Recovery or reset by hold off seconds: [ $SSout ] $(echo $LASTSTAT | awk '{print $2,$8,$10,$17}')" >> $FPINGLOG
+  # was LASTSTAT don't really take over global LASTSTAT (0.8.5.4)
+  local iwconfigLast=`iwconfig eth1 | grep -E -i 'Rate|Quality|excessive'`
+  #echo "Recovery or reset by hold off seconds: [ $SSout ] $(echo $iwconfigLast | awk '{print $2,$8,$10,$17}')" >> $FPINGLOG
   # 0.8.3.5: add :$FullFails to evaluate FRstWait_calculate()
-  echo "Step $FRstStep:$FullFails, limit:results: [ $SSout ]   Wlan: $(echo $LASTSTAT | awk '{print $2,$8,$10,$17}')" >> $FPINGLOG
+  echo "Step $FRstStep:$FullFails, limit:results: [ $SSout ]   Wlan: $(echo $iwconfigLast | awk '{print $2,$8,$10,$17}')" "AP: $(AP_get)" >> $FPINGLOG
   #echo "-Disconnected+Connected $GapsList" >> $FPINGLOG
   #echo "-Gap+OK $GapsNo: $GapsList" >> $FPINGLOG
   GapsNow   # update global $tuGapsNow. $(GapsNow) doesn't.
-  echo "Gaps (>$GapsTrackF):$GapsNo  @$tuGapsNow -Gap+OK secs: $GapsLast,$GapsList" >> $FPINGLOG
+  #echo "Gaps (>$GapsTrackF):$GapsNo  @$tuGapsNow -Gap+OK secs: $GapsLast,$GapsList" >> $FPINGLOG   # remove irritating extra " (>0)" (0.8.5.3)
+  echo "Gaps""$GapsTrackFmsg"":$GapsNo  @$tuGapsNow -Gap+OK secs: $GapsLast,$GapsList" >> $FPINGLOG
   ResetsNow
   echo "Resets:$ResetsNo @$tuResetsNow -Gap+OK secs: $ResetsLast,$ResetsList" >> $FPINGLOG          # (0.8.4.1)
 }
-
 FRstWaitStats_save
 
 # 0.8.1.0: given a $1 WaitStep (0..$FRWaitStepLast) and a resulting $2 $FullFails, prepends a list of $FullFails indexed by WaitStep
@@ -1109,7 +1153,7 @@ wpa_cli_check () {
         echo "wpa_cli started ($?)"
         PID=`pidof wpa_cli`
         _z=$(( ++nWPARestart ))         # 0.8.2.6: was FailedPings_inc $PING_WPA ; FailedPings_get $PING_WPA
-        local msg=$(echo "$(Time_S) $HOSTNAME.$IPLAST"_"$VerSign" "wpa_cli process $PID re-launched $nWPARestart") # 0.8.3.1: $(Time_S) was`date -Iseconds`
+        local msg=$(echo "$(Time_S) $HOSTNAME.$IPLAST"_"$VerSign" "wpa_cli process $PID re-launched $nWPARestart")
         echo $msg
         LogFile_save $msg
         echo $msg | nc -w 3 $TCPLOG $TCPPORT
@@ -1147,7 +1191,7 @@ AutoIFace_isWLAN () {
   return 1              # confusing, isn't it?
 }
 
-AutoIFace_check ; if AutoIFace_isWLAN ; then echo -n wlan ; else echo -n Ethernet ; fi ; wpa_cli_status ; echo " ${AutoIFace##auto} $WpaST"
+#AutoIFace_check ; if AutoIFace_isWLAN ; then echo -n wlan ; else echo -n Ethernet ; fi ; wpa_cli_status ; echo " ${AutoIFace##auto} $WpaST"
 
 
 # ----------------------------------------
@@ -1159,7 +1203,7 @@ Script_exit () {
   echo "wlanpoke exiting"               # 0.8.2.4: note start of exit function
   FailedPings_save
   FRstWaitStats_save
-  local msg=$(echo "$(Time_S) $HOSTNAME.$IPLAST"_"$VerSign" "wlanpoke $PID exiting: $FPout")    # 0.8.3.1: $(Time_S) was `date -Iseconds`
+  local msg=$(echo "$(Time_S) $HOSTNAME.$IPLAST"_"$VerSign" "wlanpoke $PID exiting: $FPout")
   echo $msg
   LogFile_save $msg
   echo $msg | nc -w 3 $TCPLOG $TCPPORT
@@ -1198,6 +1242,7 @@ PingOk=0                                # 0.8.0.0: count of ok pings to hold off
 FRstCount=0                             # 0.8.0.0: count of current full resets, reset when ping succeeds
 NextFull=$PINGRESET                     # 0.8.1.0: NextFull=n+FRWaitSecs/PINGSECS
 iPrevWlan=1
+StatSaveNext=0                          # set non-zero to save $LASTSTAT to the log and nc (0.8.5.4a)
 
 tuFirstFail=0                           # save time of first failure (0.8.4.2)
 
@@ -1229,7 +1274,7 @@ while true; do
       # fi
       # 0.8.2.6a report gateway only if changed.
       if [[ ! "$GWo" == "$GATEWAY" ]] ; then
-        local msg=$(echo "$(Time_S) $HOSTNAME.$IPLAST"_"$VerSign" "$IPADDR $IPFIRST $IPLAST gateway $GATEWAY")  # 0.8.3.1: $(Time_S) was`date -Iseconds`
+        local msg=$(echo "$(Time_S) $HOSTNAME.$IPLAST"_"$VerSign" "$IPADDR $IPFIRST $IPLAST gateway $GATEWAY")
         echo $msg
         LogFile_save $msg
       fi
@@ -1273,7 +1318,7 @@ while true; do
   if [[ $iNG -eq 0 ]]
   then
     # # echo ping ok
-    DTOK=$(Time_S)                                  # ping succeeded. # 0.8.3.1: $(Time_S) was`date -Iseconds`
+    DTOK=$(Time_S)                                  # ping succeeded.
     decho 5 $iLoop $DTOK $GATEWAY " ping ok $nF"
     FailedPings_inc $nF                             # 0.7.0: save ping statistics. 1 has additional count after reset.
     # Calculate last outage seconds (0.8.3.5)
@@ -1292,6 +1337,9 @@ while true; do
       tuResetStart=0
     fi
 
+    # save current stats for comparison. May be too soon, but this is a start... (0.8.5.3)
+    GetStats                                        # moved from below to eliminate need to save recovery stat especially (0.8.5.4a)
+
     # 0.8.1.0: save full reset recovery statistics
     SSout=""
     if [[ $FRstCount -gt 0 ]] ; then
@@ -1301,6 +1349,10 @@ while true; do
       FRstWaitStats_getAll                          # populate SSout.
       decho 5 "Recovered: FRstWaitStats_inc $nFullReset $FRstCount $FRstStep, $FullFails: $SSout"  # 0.8.3.4 missing $
       FRstWait_calculate $FullFails                 # 0.8.3.0
+      # maybe done automatically above moved from below to eliminate need to save recovery stat especially (0.8.5.4a)
+      # echo $LASTSTAT " -------------------- saving this ----------------- "
+      # LogFile_save $LASTSTAT
+      # echo $LASTSTAT >> $STATLOG                   # for UploadStats
     fi
 
     if [[ -n "$DTRST" || -n "$DTQRST" ]] ; then     # 0.7.0: either one will do to send the logs after a successful ping.
@@ -1353,7 +1405,7 @@ while true; do
     FRWaitSecs_get $FRstStep
     NextFull=$(( FRWaitSecs / PINGSECS ))
 
-    GetStats
+    #GetStats
     DTNG=
   elif [[ $PingOk -eq 0 ]] ; then
     echo "waiting for successful first ping"
@@ -1390,7 +1442,7 @@ while true; do
     fi
 
     if [[ -z "$DTNG" ]] ; then
-      DTNG=$(Time_S)                    # 0.8.3.1: $(Time_S) was`date -Iseconds`
+      DTNG=$(Time_S)
       # Start a new single incident log, don't want to fill up the flash. 0.8.3.5: add working seconds
       echo $DTNG $HOSTNAME.$IPLAST"_"$VerSign $GATEWAY " ping failed after $tuWorkingLast""s" `iwconfig $IFACE` > $ERRLOGLAST
       # 0.6.2: save the log file with first the failure, then the recovery
@@ -1415,10 +1467,18 @@ while true; do
     if [[ $nF -eq $NextFull ]] ; then           # 0.8.1: was 6 # 2x6=12 seconds was 2x10=20 seconds was #if [[ $nF -gt $PINGRESET ]] ; then
       _z=$(( nFullReset++ ))                    # 0.8.2.6: was FailedPings_inc $PINGLFULL      # 0.7.2: don't interfere with the failed ping count.
 
+      # If Quick Reset failed, save Reset stats on failure. Same code as success case. (0.8.4.3a)
+      if [[ $tuResetStart -ne 0 ]] && [[ $tuResetEnd -eq 0 ]] ; then
+        tuResetEnd=$(Time_U)
+        tuResetOutageLast=$(( tuResetEnd - tuResetStart ))
+        Resets_inc
+        tuResetStart=0
+      fi
+
       # save Reset stats on first failure. (0.8.4.1)
       if [[ $tuResetStart -eq 0 ]] ; then
         tuResetStart=$tuGapStart               # that happened a while ago at the first ping fail(ure)
-        tuResetWorkingLast=$(( tuResetStart - tuResetEnd ))
+        tuResetWorkingLast=$(( tuResetStart - tuResetEnd ))     # this will be a negative number when QuickReset is used
         tuResetEnd=0
       fi
 
@@ -1445,6 +1505,14 @@ while true; do
       # decho 5 "FRstCount = $FRstCount, FullFails = $FullFails"
     elif [[ $nF -eq $PINGQUICK ]] ; then    # 0.7.0: new. > $PINGRESET disables ResetQuick   -ge makes a mess of the FailedPings log.
       _z=$(( nQuickReset++ ))               # 0.8.2.6: was FailedPings_inc $PINGLQUIK     # 0.7.2: don't interfere with the failed ping count.
+
+      # save Reset stats on first failure. (0.8.4.3a)
+      if [[ $tuResetStart -eq 0 ]] ; then
+        tuResetStart=$tuGapStart               # that happened a while ago at the first ping fail(ure)
+        tuResetWorkingLast=$(( tuResetStart - tuResetEnd ))
+        tuResetEnd=0
+      fi
+
       ResetQuick
     fi
   else                                      # we are on the Ethernet.

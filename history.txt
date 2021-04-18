@@ -3,13 +3,32 @@
 
 To Do:
 
+2021-04-17.01	Enh: check and relaunch the 'slow' 'web' server if not running.
+
+2021-04-15.05	Enh: better interface to test different quick reset methods.
+
+2021-04-15.03	Enh: quiet the Squeezeplay logging so that messages is more relevant to outages.
+					-> need step by step for this.
+
+2021-04-15.02	Enh: add counter for gaps in the music - 
+					instrument jive, or perhaps jive_alsa.
+					watch 'messages'?
+
+2021-04-15.01	Enh: some sort of statistic to evaluate quick reset so we can evaluate different quick reset methods.
+					Cannot just use score, since multiple quick reset short-lived recoveries ending in a full reset may not be desirable.
+					How many unsuccessful trials (full reset first time use). Not quick reset's fault?
+					  -- easier: increment successful trials ping after quick reset before full reset.
+					How long until the next failure requiring full reset?
+
+2021-04-11.01	Enh: should we try to compensate for the long loop activity delay to make PINGSECS more accurate?
+					This would possibly disrupt the other settings.
+					Can do sub-second sleeps with usleep, but cannot easily measure sub seconds.
+
 2021-04-02.09	Enh: Limit potential out of control /etc/log/fping.txt.log.
 					-> need to use the logfile rotation to do this, not now
 
 2021-03-30.04	Enh: rename "quick" and "slow" web server options.
 					-> minimal and full? not really. quick is ok. ...
-
-2021-03-27.03   Enh: add option to suppress re-launching wpa_cli or at least delay it.
 
 2021-03-26.03   Enh: change messages log file location to /etc/log for persistence over a reboot.
                     Alt: copy messages* after a full reset.
@@ -23,6 +42,59 @@ To Do:
 
 History:
 
+0.8.5.5 4/18/2021	(experimental)
+
+				Note: this version enables quick reset by default.
+					-> PINGQUICK=3
+
+2021-04-15.04	Enh: some sort of interface to test different quick reset methods.
+					#Quick_method=wpa       # set to a quick reset mode, under development. (0.8.5.0)
+                    #Quick_method=ifdnup76  # Not any better. For docmentation only.
+					-- none of this is acceptable. See 2021-04-15.05
+
+0.8.5.4 4/13/2021
+
+2021-04-11.03	Enh: Add a scan_results log and nc message after a successful full reset.
+					  # save current stats for comparison.
+					  NO: LogFile_save $LASTSTAT  ;  echo $LASTSTAT >> $STATLOG	# for UploadStats
+					  -> done by moving call to GetStats above UploadStats, so last entry is after recovery - automatic!
+
+2021-04-11.02	Bug: -R should just restart the network and exit, according to the usage and docs?
+					-> No, that would confuse any running script.
+					-> Current implementation also is wrong because it restarts the network before killing an existing script.
+					"-R    Use this to restart the wireless network for manunal testing. Not recommended for use during boot up."
+
+
+0.8.5.2 4/12/2021
+
+2021-04-10.02	Enh: don't show Gaps (>0) minimum gap unless > 0 in fping report. Yes, irritating
+					-> Done. GapsTrackFmsg='' 
+
+0.8.5.1 4/10/2021
+
+2021-04-10.01	Enh: Add Access point SSID to Wlan: report.
+					-> ESSID and last 3 BSSID added to CB entries and Step report
+
+0.8.5.0 4/10/2021
+
+2021-04-10.03	Doc: update sed example to substitute 's/,-/+/g' then  's/+-/-/g' in documentation.
+
+2021-04-09.01	Bug: log file entries are missing using quick reset.
+					-> CXL: wrong machine.
+
+2021-04-09.02	Doc: `date -d @1617751477` manual.txt example sets the system clock to that time!
+					-> Don't do that. SB `date -d @1617751477` changed 3 places.
+
+2021-03-27.03   Enh: add option to suppress re-launching wpa_cli or at least delay it.
+					-> CXL: doesn't seem to be an issue, nothing else is watching out for it.
+
+0.8.4.3 04/08/2021
+
+2021-04-08.01	Enh: include Quick Reset in reset statistics.
+					-> added code a la full reset
+					-> added code to full reset case to close quick reset a la success case.
+
+2021-04-07.02	Enh: reinstate Quick Reset default value 3.
 
 0.8.4.2 04/07/2021
 

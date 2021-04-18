@@ -1,4 +1,4 @@
-                wlanpoke User Manual Version 0.8.4
+                wlanpoke User Manual Version 0.8.5
 
 Introduction
 
@@ -18,7 +18,6 @@ We hope this software will become obsolete when the root causes of the unreliabi
 
 Please address your responses to the slimdevices forums in the README.md file, which also contains news.
 
-Note: Version 0.8.2 was a very large revision of the software to address issues with low signal levels in the presence of interference causing the radio's poor wireless reception, which resulted in long delays after a reset to reestablish a connection. The prior software's fixed trial limit before reset (6) would trigger another full reset before the connection could be reestablished. The limit is now specified in pseudo-seconds (default 12) and increased in steps if a lower limit fails. The "failed pings" counter keeps incrementing for a better measurement of outage time. Additional logging has been added to evaluate the system's performance in new ways. In particular a new reset recovery by limit time report shows the last several recovery times after a full reset indexed by the reset limit. The software now handles switching between Ethernet and wireless connections: an Ethernet connection disables wireless resets, although ping failures are still monitored and logged. Other code changes include improved math calculations, and a start at more meaningful and conforming variable names.
 
 
 Usage
@@ -117,12 +116,12 @@ Usage: wlanpoke.sh [options]
  -S * seconds to delay between ping tests (default 2)
  -Q * number of pings to fail before quick reset (default -1, enable < 6, disable -1)
  -F * number of pings to fail before full reset (default 6)
- -R   restart wireless network now and exit
+ -R   full reset wireless before starting
  -k   kill (stop) any running wlanpoke script and exit
  -z * sleep seconds (default 5)
  -l * log level 0-8 verbosity (default 3)
  -c   show copyright and license notice and exit
- -h   help and version 0.8.4
+ -h   help and version 0.8.5
 
     * requires a reasonable value: no special chars, options are not validated. E.g.,
       -s 10
@@ -151,7 +150,7 @@ To specify command line options that rarely or never change, change the default 
 
 -F    Set this number to a lower value to more quickly completely reset the wireless for shorter interruptions if the quick method is not effective.
 
--R    Use this to simply restart the wireless network.
+-R    Use this to restart the wireless network for manunal testing. Not recommended for use during boot up.
 
 -z    Used to delay network testing, typically during boot up. No need to pound on the network when the machine is first starting, give it some time. The software doesn't start to work until the network is first established and the gateway has been set. (was -s)
 
@@ -188,9 +187,9 @@ o The 'pwp' shell function lists all processes containing 'wlan' to list wlanpok
 o The 'll' function lists details for all files matching any arguments you give. 'll *.local' lists the files ending with ".local".
 o These ephemeral functions go away after closing the session. You will save time if you put them into root's "/root/.profile" file or the all users "/etc/profile" (no dot).
 
-Of course, you must have already downloaded the zip file so that you can read this manual. Transfer the file. There are several ways to do this. One way is 'tftp' (Trivial FTP). If you don't have a 'tftpd' server running, they are simple to download and install. Put the downloaded wlanpoke-0.8.4.zip in the tftpd root folder, then run:
+Of course, you must have already downloaded the zip file so that you can read this manual. Transfer the file. There are several ways to do this. One way is 'tftp' (Trivial FTP). If you don't have a 'tftpd' server running, they are simple to download and install. Put the downloaded wlanpoke-0.8.5.zip in the tftpd root folder, then run:
 
-tftp -g -l wlanpoke-0.8.4.zip -r wlanpoke-0.8.4.zip 192.168.0.4
+tftp -g -l wlanpoke-0.8.5.zip -r wlanpoke-0.8.5.zip 192.168.0.4
 
 where "192.168.0.4" is replaced by the tftpd server's ip address.
 
@@ -205,16 +204,16 @@ At this point, the zip file has been downloaded into the radio.
 The suggested installation directory is "/etc/wlanpoke". Create the directory:
   mkdir /etc/wlanpoke
 
-Regrettably, there are several versions of the release zip file: a simple flat file (no directory structure) with the file name wlanpoke.0.8.4.zip (note the period instead of hyphen), and two from the GitHub site that have different naming conventions (e.g., wlanpoke-0.8.4.zip or wlanpoke-main.zip), which duplicate the file name in an included folder, requiring an extra step.
+Regrettably, there are several versions of the release zip file: a simple flat file (no directory structure) with the file name wlanpoke.0.8.5.zip (note the period instead of hyphen), and two from the GitHub site that have different naming conventions (e.g., wlanpoke-0.8.5.zip or wlanpoke-main.zip), which duplicate the file name in an included folder, requiring an extra step.
 
 Unzip the files into the installation directory, overwriting anything there:
-  unzip -o wlanpoke-0.8.4.zip -d /etc/wlanpoke
+  unzip -o wlanpoke-0.8.5.zip -d /etc/wlanpoke
 
 See if the zip file had an included folder:
   ls -al /etc/wlanpoke
 
 If you see a folder with the same name as the zip file, that folder contains the new software. Copy or move the contents of that folder to the installation folder, overwriting any existing files:
-  mv -f /etc/wlanpoke/wlanpoke-0.8.4/* /etc/wlanpoke
+  mv -f /etc/wlanpoke/wlanpoke-0.8.5/* /etc/wlanpoke
 
 Check again to see that the included files listed below are there:
   ls -al /etc/wlanpoke
@@ -437,7 +436,7 @@ RawFails 'Web Page'
 
 For another example, see RawFails Summary Report Analysis, below. This report returns a connection status report in a few lines:
 
-LRUE wlanpoke.sh 0.8.4.1 4/6/2021 launched 2021-04-06_10:11:51 1617718311 Options: -W slow -d /etc/log/
+LRUE wlanpoke.sh 0.8.5.1 4/6/2021 launched 2021-04-06_10:11:51 1617718311 Options: -W slow -d /etc/log/
 2021-04-06T20:14:08-0400 ( 20:14:08 up 12 days, 19:18, load average: 2.46, 2.37, 2.25 )
 ... (RawFails Statistics, see below)
 
@@ -489,48 +488,39 @@ Resets:6 @1617754438 -Gap+OK secs: +2905,-56+7722,-40+6611,-40+6038,-38+4128,-40
 
 The Gaps line displays the number of 1 or more ping failures since launch, and a list of the most recent gaps measured in real seconds, the last first, and older entries discarded. A '-' indicates a gap, and '+' a continuous connection. 
 
-The @ indicates the unix time of the report. To get the clock time of a gap, add the absolute value of the numbers starting from the left to the event, then subtract that from the unix time. If desired, convert that to a human readable time e.g., `date @UnixTime`. 
+The @ indicates the unix time of the report. To get the clock time of a gap, add the absolute value of the numbers starting from the left to the event, then subtract that from the unix time. If desired, convert that to a human readable time, e.g., `date -d @UnixTime` (but don't forget the -d, otherwise you will set the device's time to that time!).
 
 For example, the "-56+24," entry shows a large 56 second gap. Adding the preceding numbers, 
 +8+4+99+3+1637+4+194+4+39+4+164+5+739+56 = 2960 seconds. Subtracting from the unix time: 1617754437-2960 = 1617751477
-date @1617751477 = "Tue Apr  6 19:24:37 EDT 2021." Hey, that was just now!
+date -d @1617751477 = "Tue Apr  6 19:24:37 EDT 2021." Hey, that was just now! [Well, it was then.]
 
 The Gaps list gets large. The 70 gaps since launch would take ~9 * 70 = 630 characters, and this is for just 36126 seconds (~10 hours) of operation. The list is trimmed (see GapsListMax) to make it manageable.
 
-The Resets line is just like the Gaps line, except it displays the outages and connections times for and between resets. That '-56' second reset came after 7722 seconds on reasonable (but not perfect) connectivity. Let's see: +2905+56 = 2961, 1617754438-2961 = 1617751477, date @1617751477 = "Tue Apr  6 19:24:37 EDT 2021." Hey, that the same time as above! 
+The Resets line is just like the Gaps line, except it displays the outages and connections times for and between resets. That '-56' second reset came after 7722 seconds on reasonable (but not perfect) connectivity. Let's see: +2905+56 = 2961, 1617754438-2961 = 1617751477, date -d @1617751477 = "Tue Apr  6 19:24:37 EDT 2021." That the same time as above!
+
+Quick Reset Logging
+
+When quick reset is used and does not restore the connection quickly enough, the full reset function starts, just as if quick reset were not used. In this case, the full reset closes the open quick reset record with a (false) '+' recovery time (about 20 seconds). The following full reset entry shows the same time as a negative connected time using two signs, '+-', to compensate and cancel the quick reset false recovery time. 
+
+To calculate to a time in the past, the ',-' pattern should be '+', but '+-' should be changed to '-' so that the number subtracts from and cancels the subsequent false recovery time. You can use sed to do this. 
+
+The following radio example contains three such events, with the list truncated to a point of interest:
+
+a=+2697,-45+-24,-24+217,-15+222,-16+663,-15+5503,-45+-21,-21+12,-20+23,-16+15,-15+11964,-43+-21,-21+214,-16+73,-17+38,-16+2941,-54+-20,-20+10,-17+9,-15+1059,
+b=`echo $a | sed -e 's/,-/+/g' -e 's/+-/-/g' -e 's/,//g'` ; echo $b
++2697+45-24+24+217+15+222+16+663+15+5503+45-21+21+12+20+23+16+15+15+11964+43-21+21+214+16+73+17+38+16+2941+54-20+20+10+17+9+15+1059+15+145
+d=$((bc)) ; echo $d
+26185
+
+The first line assigns the truncated list to a new shell variable, 'a'. The second line changes the signs, removes the commas, and assigns it to 'b'. The third line is the output of the previous echo $b statement. The forth line performs the calculation, assigns it to variable 'd', and echos the result, on the fifth line. The next steps would be to subtract that number from the unix time (not shown) at the head of the list, and convert that to a human readable time and date (see above). 
+
+Commentary
 
 These statistics provide a sense of the adverse activity confronting these radios, and the steps taken to mitigate the problems. A few things stand out: 
 
 First, the recovery times of 30-60 seconds, frequently more with weak (< -65 dBm) signals, is far too long. This might be improved by setting the initial trigger lower, e.g., 3 trials instead of 6, and not waiting during the reset process for it to complete before resuming trials. The first action would cause the reset to happen earlier, which is good. The second would cause the software to resume measuring the system earlier, which is irrelevant to the radio resuming play. The first action had been handled by a quick reset function after 3 failures; however, it was temporarily  disabled because it sometimes led to wlanpoke never resetting the radio due to several software bugs. This might be re-enabled by default in the future, and you are welcome to do so for your own trials.
 
 Second, the 11357 zero failures in 36126 seconds show that the cycle time per trial is 36126/11357 = 3.18 seconds, significantly higher than the specified 2 second trial time. That is why the quotes around '2 second' in the text. 
-
-
-Previous Versions (0.7.x)
-
-This example is from an earlier date when there was more adverse WiFi activity, but no low signal level testing. The quick, full, wpa_cli reset counters were in array indexes [8..10].
-
-The disconnect and reconnect entry includes a vector that may be helpful in setting the optional parameters -S -Q -F (see above). Here is an example entry with a footer added to aid reading:
-
-Ping 2s3q6f Fails[9]: 9687 9 0 0 0 18 0 0 19 1  0
-(--- array index ----    0 1 2 3 4  5 6 7  8 9 10 )
-(--- activity -------   ok     q      f    q f  w )
-
-In this example, the -S, -Q, and -F settings were the default 2, 3, and 6, respectively. With the full reset parameter set to 6, array indexes [0 - 7] display the number of failed pings counted before the system had a successful ping. Array indexes [8] and [9] count the number of times the quick and full reset actions were performed. We would expect index [7] to be zero because the full reset also sets the failed ping counter to 1 (to keep trying), so the counter wraps from 6 to 1. Index [10] count the restarts after failure of the wpa_cli network process, but none were recorded.
-
-By far, the pings succeed with zero intervening failures, so the [0] number is large (9687). The radio had 19 quick and 1 full resets. The 1 full reset occurred at failed ping count 6. The recovery occurred after the failed ping counter, reset to 1, would be 1 or more. The 19 quick resets occurred when the ping counter was 3. The recovery, if it happened, would occur with 3, 4, 5, or 6 failed pings, which were [3..6] 0+18+0+0=18 times. Subtracting 18 recoveries from 19 quick resets [8] leaves 1 instance where the recovery did not occur before the full reset kicked in. This matches the 1 full reset counter [9]. Full reset recoveries would be included in slots [1..6], but likely mostly in [1].
-
-This 9 one-ping failures must be overwhelmingly the radio recovering on its own, or perhaps a lapse in the router ping response. Pings are not guaranteed. It is unknown how many of the 2 and 3 failures include a recovery from a full reset. The full reset has delays to allow the system to recover before the tests resume, so most if not all of the recoveries should be at failed ping count 1.
-
-In this example, the radio recovered from a ping loss on its own at least 9-1=8 times. These likely would not be noticed. It recovered from the quick reset 17 times, but required the full reset 1 times. This example suggests that the quick reset method is a valuable addition to the script.
-
-Here are some more examples, lined up in columns, analyze them for yourself. These are overnight figures:
-Ping 2s3q6f Fails[9]: 18262  45 0 0 0 11 0 0 11  0 0
-Ping 2s3q6f Fails[9]: 19134 179 2 0 1 61 1 0 77 14 0    (1 south, brutal!)
-Ping 2s3q6f Fails[9]:   460  20 1 0 0  3 0 0  4  1 0
-Ping 2s3q6f Fails[9]: 15851  49 0 0 1 13 2 0 20  4 0    (2nd floor)
-(--- array index ----     0   1 2 3 4  5 6 7  8  9 10 )
-(--- activity -------    ok       q      f    q  f    )
 
 
 Desktop Analysis
@@ -555,7 +545,7 @@ RawFails Summary Report Analysis
 
 The optional 'slow' web server can return a 'RawFails' request to produce, for example:
 
-MSB wlanpoke.sh 0.8.4.1 4/6/2021 launched 2021-04-06_10:12:06 1617718326 Options: -W slow -d /etc/log/
+MSB wlanpoke.sh 0.8.5.1 4/6/2021 launched 2021-04-06_10:12:06 1617718326 Options: -W slow -d /etc/log/
 2021-04-07T06:17:29-0400 ( 06:17:29 up 6 days, 15:30, load average: 1.02, 1.07, 1.09 )
 Ping 2s-1q6f Events, Fails[0..10] 72293s :    Qr:0 Fr:7   Wr:3 Wc:0  [ 21935 557 25 1 0 0 3 1 8:1 9:1 10:1 ]
 Step 0:0, limit:results: [ 12:8,0,4,2,0,0, 18:0, 26: 37: 53: ]   Wlan: Rate=5.5 Quality:29/94 level:-66 retries:38
