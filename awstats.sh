@@ -28,7 +28,9 @@ if [[ -r "Version" ]] ; then
   VersWLP=`cat "Version"`
 fi
 
-HOSTNAME=`echo $VersWLP | cut -d" " -f1`
+
+
+HOSTNAME=`cat "Hostname"`
 if [[ -z "$HOSTNAME" ]] ; then
   HOSTNAME="WLAN"
 fi

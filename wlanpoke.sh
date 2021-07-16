@@ -425,6 +425,7 @@ fi
 #echo "$HOSTNAME ${0##*/} $Version" "launched (""$WSERVER"") $tsLaunch $tuLaunch" > "$APPDIR"/Version
 ScriptName=$0   # 0.8.3.4: use saved ScriptName remove path added $Options
 echo "$HOSTNAME ${ScriptName##*/} $Version" "launched $tsLaunch $tuLaunch Options: $Options" > "$APPDIR"/Version
+echo "$HOSTNAME" > "$APPDIR"/Hostname
 
 IPADDR=$(wpa_cli status | grep ip_address | cut -d '=' -f2)
 # radio's ip address
