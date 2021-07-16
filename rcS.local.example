@@ -1,4 +1,4 @@
 #!/bin/sh
 
 /usr/bin/logger -s "starting wlanpoke.sh"
-/etc/wlanpoke/wlanpoke.sh -W slow -Q 2 &
+/etc/wlanpoke/wlanpoke.sh  &
