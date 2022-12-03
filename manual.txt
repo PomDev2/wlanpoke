@@ -1,4 +1,4 @@
-                wlanpoke User Manual Version 0.8.5
+                wlanpoke User Manual Version 0.8.7.1
 
 Introduction
 
@@ -12,12 +12,26 @@ Besides mitigating the wireless connectivity issue, the software instruments the
 
 The software is implemented as the shell script "wlanpoke.sh." plus supporting files and documentation. There is also an optional script simple 'web server' to serve statistics to a web browser.
 
-This software has been rushed together in response to an emergency of constantly failing radios. Versions have been keeping the author's 4 SB and 2 UE radios connected for 6 months as of this writing. Several users have downloaded previous versions, and they have reported that it has generally worked to keep their radios usable. This software is just a temporary partial mitigation of a serious reliability issue that has arisen during 2020. There are many un- or under-tested functions and features, multitudes of bugs, questionable methods, and coding ugliness. Please assist in pointing these out or fixing them.
+This software has been rushed together in response to an emergency of constantly failing radios. Versions have been keeping the author's 4 SB and 2 UE radios connected for 8 months as of this writing. Several users have downloaded previous versions, and they have reported that it has generally worked to keep their radios usable. This software is just a temporary partial mitigation of a serious reliability issue that has arisen during 2020. This was caused by the rapid adoption of WiFi-6 (80211.ax) and mesh networking during the COVID pandemic. There are many un- or under-tested functions and features, multitudes of bugs, questionable methods, and coding ugliness. Please assist in pointing these out or fixing them.
 
 We hope this software will become obsolete when the root causes of the unreliability have been fixed. In the mean time, your kind suggestions and improvements are appreciated. Please feel free to modify and adapt the scripts for your own purposes. And please feel free to join the effort to find real lasting solutions to this issue.
 
 Please address your responses to the slimdevices forums in the README.md file, which also contains news.
 
+NOTE: Experimental Failure Reduction
+
+This version is an experimental release that incorporates a brute force application of an experimental method to reduce WLAN failure. Some portable or mobile functionality may be degraded. You may wish to revert your system to a previous version. Check for updates. Read history.txt. Please post your experiences on the Squeezebox Radio forum and the GitHub issues tab.
+
+A possible cause for failure has been identified as too frequent scanning for alternate access points by the radio even when connected to a strong signal router or access point. This scanning may encounter signals or packets that cause the radio to lose wireless sensitivity, degrade reception, and eventually fail. This version includes a function to attempt to reduce the number of these scans. The function uses very poorly or undocumented calls to the radio's wireless driver and chip in the belief that this will have the desired effect. Testing over a few days suggests that this provides a dramatic improvement in some cases. However, other use cases, especially ones that require frequent switching wireless networks, may be degraded. 
+
+The function is controlled by a small text file in the install directory (/etc/wlanpoke) named "scanctrl.inc." It contains at minimum 6 numbers that disable or enable various aspects of the radio's scan function under some circumstances. The default is a list of 6 zeros, to disable everything possible with this function. That may be too much for your use case.
+
+If your experience is degraded, you may wish to disable this function altogether. To do so, overwrite any existing "scanctrl.inc." file with a short (< 11 character) message, e.g.,
+  echo "stop" > scanctrl.inc
+will do it. Or you can delete the file and then "touch scanctrl.inc" to create a zero length file. If you delete the file, it will be recreated with default values the next time wlanpoke launches.
+You can experiment with the parameters on the fly, e.g., 
+  echo "0 0 1 0 0 0" > scanctrl.inc
+They will be applied after the next quick or full reset. 
 
 
 Usage
@@ -96,6 +110,8 @@ start ncat -l -k -p 1121 -o 1121.log
 
 Add absolute paths to the 'ncat.exe' and the log file as appropriate. 'tail' is not needed for real time console viewing.
 
+A Windows 'feature' causes an inadvertant mouse click to pause ncat, which in turn holds off the script, leading to eventual connection loss. To prevent these accidents, disable Quick Edit Mode: From the ncat window, click the upper left title bar icon to open the system menu, then select Properties to open the console Properties dialog. Click on the Options tab. Under Edit Options, uncheck "Quick Edit Mode," then click Ok to close the dialog and apply the settings. You can still make a selection using the system menu. Make sure ncat is not frozen when you are done.
+
 
 Command Line Options
 The -h option displays the following help:
@@ -114,6 +130,7 @@ Usage: wlanpoke.sh [options]
  -W * optional web server 'quick' for status or 'slow' for more, or 'none' (default 'none')
  -Wp * optional web server port (default 8080)
  -S * seconds to delay between ping tests (default 2)
+ -Qm * specific quick reset method (default 'power')"
  -Q * number of pings to fail before quick reset (default -1, enable < 6, disable -1)
  -F * number of pings to fail before full reset (default 6)
  -R   full reset wireless before starting
@@ -121,7 +138,7 @@ Usage: wlanpoke.sh [options]
  -z * sleep seconds (default 5)
  -l * log level 0-8 verbosity (default 3)
  -c   show copyright and license notice and exit
- -h   help and version 0.8.5
+ -h   help and version 0.8.7
 
     * requires a reasonable value: no special chars, options are not validated. E.g.,
       -s 10
@@ -145,6 +162,8 @@ To specify command line options that rarely or never change, change the default 
 -Wp   specifies the port the optional server listens to. The default is 8080. You may want to change this to 80, the standard web port.
 
 -S    If you want to speed up the reset after a failure, set this to 1 second.
+
+-Qm	  Specify a quick reset method: one of 'power', 'wpa', or 'ifdnup76'. All methods reassociate with the access point. None of them are fully effective, instead, they delay "the inevitable" repeatedly for a few seconds each time until the next full reset, which restores the connection for a much longer time. Still, the methods recover some connectivity quickly, perhaps quickly enough to avoid gaps in the music, while "warning" the radio that the connection is becoming unreliable (so it could buffer more data for a shorter outage during a full reset). Experiment with this. The default is power, short for power nap. It turns off the radio entirely to save power, requiring a sort of internal reboot to restart. Too bad it is not fully effective. Stay tuned, improvements may be forthcoming. 
 
 -Q    Set this number to a number a few counts lower than the full reset value below to attempt a quick reset, or -1 to disable quick reset. This parameter is set by default to -1 to disable the quick reset method because it works only "99 times out of 100," which occurred because of bugs in previous versions.
 
@@ -187,9 +206,9 @@ o The 'pwp' shell function lists all processes containing 'wlan' to list wlanpok
 o The 'll' function lists details for all files matching any arguments you give. 'll *.local' lists the files ending with ".local".
 o These ephemeral functions go away after closing the session. You will save time if you put them into root's "/root/.profile" file or the all users "/etc/profile" (no dot).
 
-Of course, you must have already downloaded the zip file so that you can read this manual. Transfer the file. There are several ways to do this. One way is 'tftp' (Trivial FTP). If you don't have a 'tftpd' server running, they are simple to download and install. Put the downloaded wlanpoke-0.8.5.zip in the tftpd root folder, then run:
+Of course, you must have already downloaded the zip file so that you can read this manual. Transfer the file. There are several ways to do this. One way is 'tftp' (Trivial FTP). If you don't have a 'tftpd' server running, they are simple to download and install. Put the downloaded wlanpoke-0.8.7.zip in the tftpd root folder, then run:
 
-tftp -g -l wlanpoke-0.8.5.zip -r wlanpoke-0.8.5.zip 192.168.0.4
+tftp -g -l wlanpoke-0.8.7.zip -r wlanpoke-0.8.7.zip 192.168.0.4
 
 where "192.168.0.4" is replaced by the tftpd server's ip address.
 
@@ -204,16 +223,16 @@ At this point, the zip file has been downloaded into the radio.
 The suggested installation directory is "/etc/wlanpoke". Create the directory:
   mkdir /etc/wlanpoke
 
-Regrettably, there are several versions of the release zip file: a simple flat file (no directory structure) with the file name wlanpoke.0.8.5.zip (note the period instead of hyphen), and two from the GitHub site that have different naming conventions (e.g., wlanpoke-0.8.5.zip or wlanpoke-main.zip), which duplicate the file name in an included folder, requiring an extra step.
+Regrettably, there are several versions of the release zip file: a simple flat file (no directory structure) with the file name wlanpoke.0.8.7.zip (note the period instead of hyphen), and two from the GitHub site that have different naming conventions (e.g., wlanpoke-0.8.7.zip or wlanpoke-main.zip), which duplicate the file name in an included folder, requiring an extra step.
 
 Unzip the files into the installation directory, overwriting anything there:
-  unzip -o wlanpoke-0.8.5.zip -d /etc/wlanpoke
+  unzip -o wlanpoke-0.8.7.zip -d /etc/wlanpoke
 
 See if the zip file had an included folder:
   ls -al /etc/wlanpoke
 
 If you see a folder with the same name as the zip file, that folder contains the new software. Copy or move the contents of that folder to the installation folder, overwriting any existing files:
-  mv -f /etc/wlanpoke/wlanpoke-0.8.5/* /etc/wlanpoke
+  mv -f /etc/wlanpoke/wlanpoke-0.8.7/* /etc/wlanpoke
 
 Check again to see that the included files listed below are there:
   ls -al /etc/wlanpoke
@@ -303,6 +322,12 @@ PINGRESET=6
 PINGQUICK=-1
   * This specifies the 1 or 2 second time periods (PINGSECS) to wait (2x6=12 seconds) after a ping failure before quickly resetting the network. Overridden by the -Q command line switch. Be default, this is set to -1 to disable.
 
+Quick_method=power
+  * This specifies the quick reset method. See the discussion under -Qm option above.
+
+PowerNap=500000
+  * This specifies the number of uSecs to sleep between disable and enable radio in the power nap method. 
+  
 FRstSleepMin=12
 FRstSleepMax=60
  * These specify the minimum and maximum times to hold off a full reset after ping fails. The hold off time is set to the minimum at launch, and is incremented if a full reset fails to recover. The default minimum of 12 is a bit aggressive, and could result in one additional delay as the script resets the wireless just before it would have been reestablished. The maximum is perhaps too high (or maybe not). Weak signals < -50dbm will typically have more reception problems and take longer to establish a working connection. Try to boost your signal level.
@@ -436,7 +461,7 @@ RawFails 'Web Page'
 
 For another example, see RawFails Summary Report Analysis, below. This report returns a connection status report in a few lines:
 
-LRUE wlanpoke.sh 0.8.5.1 4/6/2021 launched 2021-04-06_10:11:51 1617718311 Options: -W slow -d /etc/log/
+LRUE wlanpoke.sh 0.8.7.1 4/6/2021 launched 2021-04-06_10:11:51 1617718311 Options: -W slow -d /etc/log/
 2021-04-06T20:14:08-0400 ( 20:14:08 up 12 days, 19:18, load average: 2.46, 2.37, 2.25 )
 ... (RawFails Statistics, see below)
 
@@ -545,7 +570,7 @@ RawFails Summary Report Analysis
 
 The optional 'slow' web server can return a 'RawFails' request to produce, for example:
 
-MSB wlanpoke.sh 0.8.5.1 4/6/2021 launched 2021-04-06_10:12:06 1617718326 Options: -W slow -d /etc/log/
+MSB wlanpoke.sh 0.8.7.1 4/6/2021 launched 2021-04-06_10:12:06 1617718326 Options: -W slow -d /etc/log/
 2021-04-07T06:17:29-0400 ( 06:17:29 up 6 days, 15:30, load average: 1.02, 1.07, 1.09 )
 Ping 2s-1q6f Events, Fails[0..10] 72293s :    Qr:0 Fr:7   Wr:3 Wc:0  [ 21935 557 25 1 0 0 3 1 8:1 9:1 10:1 ]
 Step 0:0, limit:results: [ 12:8,0,4,2,0,0, 18:0, 26: 37: 53: ]   Wlan: Rate=5.5 Quality:29/94 level:-66 retries:38

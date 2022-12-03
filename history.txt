@@ -3,9 +3,36 @@
 
 To Do:
 
-2021-04-17.01	Enh: check and relaunch the 'slow' 'web' server if not running.
+2022-12-02.02	Enh: new quick method to reload the chip firmware without reloading the driver, 
+					keeping the wpa_cli, udhcp, etc., still running, saving time...
 
-2021-04-15.05	Enh: better interface to test different quick reset methods.
+2021-11-12.01	Bug: script exits with shell error
+					/etc/wlanpoke/wlanpoke.sh: line 1: can't fork
+					/etc/wlanpoke/wlanpoke.sh: line 1: can't fork
+					sh: 8: unknown operand
+					...
+					sh: 8: unknown operand
+					/etc/wlanpoke/wlanpoke.sh: line 1: can't fork
+					...
+					/etc/wlanpoke/wlanpoke.sh: line 1: can't fork
+					wlanpoke exiting
+					/etc/wlanpoke/wlanpoke.sh: line 1: can't fork
+					...
+					2021-11-07_22:10:25 MuffyTunes Radio 4.27_0841 wlanpoke 754 exiting: Qr:0 Fr:6 Wr:20 Wc:0 [ 379145 1383 48 1 0 0 0 0 14:1 27:1 46:1 ]
+				Try using newly 'discovered' ash -x switch to capture debug output. Console or shell script:
+					TCPPORT="1122"          # 1121 is for wlanpoke
+					TCPLOG=$SERVER			# replace this with ip address of ncat listening on 1122
+					WLPIPENAME="tester"
+					rm -f $WLPIPENAME
+					mkfifo $WLPIPENAME
+					while true; do cat $WLPIPENAME | nc -w 3 $TCPLOG $TCPPORT ; done &
+					ash -x /etc/wlanpoke/wlanpoke.sh -x -W quick -d /etc/wlanpoke/log/ >$WLPIPENAME 2>&1 &
+				The wlanpoke load with the tracing is 13%, pretty high, but the radio still works. We'll see what happens when the network fails! Let's hope the pipe fills until the connection next succeeds and empties the pipe.
+
+
+2021-04-28.04	Enh: prevent nc hold off (e.g., from ncat) from hanging the script.
+
+2021-04-17.01	Enh: check and relaunch the 'slow' 'web' server if not running.
 
 2021-04-15.03	Enh: quiet the Squeezeplay logging so that messages is more relevant to outages.
 					-> need step by step for this.
@@ -19,10 +46,6 @@ To Do:
 					How many unsuccessful trials (full reset first time use). Not quick reset's fault?
 					  -- easier: increment successful trials ping after quick reset before full reset.
 					How long until the next failure requiring full reset?
-
-2021-04-11.01	Enh: should we try to compensate for the long loop activity delay to make PINGSECS more accurate?
-					This would possibly disrupt the other settings.
-					Can do sub-second sleeps with usleep, but cannot easily measure sub seconds.
 
 2021-04-02.09	Enh: Limit potential out of control /etc/log/fping.txt.log.
 					-> need to use the logfile rotation to do this, not now
@@ -42,6 +65,55 @@ To Do:
 
 History:
 
+0.8.7.1 12/02/2022
+
+2022-12-02.01	Enh: make scanctrlflags configurable.
+				-> method to configure on the fly using /etc/wlanpoke/scanctrl.inc:
+				-> SCANOPT="scanctrl.inc"	# include file containing 6 values for wmiconfig --scan --scanctrlflags x x x x x x  plus other options
+				-> SCANOPTDEF="0 0 0 0 0 0"	# default options for SCANOPT are upon launch, written to a new file if the file does not exist.
+				-> local SCANOPTS=$(cat $SCANOPT) reads file in AR6002_reduceScans(). 
+					if < 11 characters, the call is not made. 
+					Otherwise the contents are appended to the wmiconfig call. The flags must come first. Can include other parameters.
+
+0.8.7.0 11/30/2022
+
+2022-11-30.01	Enh: Try to reduce number of access point scans to reduce failure
+				-> New AR6002_reduceScans() calls 
+					/lib/atheros/wmiconfig --scan --scanctrlflags 0 0 0 0 0 0 
+				-> add AR6002_reduceScans() to ResetQuick() and RestartNetwork()
+
+0.8.6.0 8/13/2022
+
+2021-11-21.01	Bug: script exits with shell error when Access point has apostrophe
+				-> add filter to CB_put () to filter all non-alpha characters from AP names.
+
+2021-05-13.01   Doc: remove old or obsolete comments.
+				-> Partially done
+
+
+0.8.5.7 2021-05-19
+
+2021-04-15.05	Enh: better interface to test different quick reset methods.
+					-Qm option to specify quick reset method
+
+2021-04-28.01	Doc: add warning to manual.txt to prevent ncat freeze on inadvertent mouse click
+					-> Copied and introduced section from https://forums.slimdevices.com/showthread.php?109953-WiFi-connection-unstable-lost-on-three-Radios&p=1021974&viewfull=1#post1021974
+
+2021-04-19.01	Bug: awstats defaults to /var/log/ if no command line option is used, missing modified script changes.
+					-> If no option, parse the script to get the default LOGDIR is (might have been changed, and not an option)
+
+
+0.8.5.6 4/30/2021	(experimental)
+
+2021-04-28.03	Bug: Gaps and Resets list can grow to become quite large.
+					-> Keep list trimmed. while do ... done was if then..fi 2 places.
+					-> GapsListMax=240 and ResetsListMax=240 were both 120
+
+2021-04-28.02	Enh: try power down and power up to unstick loss of sensitivity and see more APs during scan.
+					-> new Quick_method=power  cycle power to mac and phy, etc. to try to reset radio sensitivity and
+					PowerNap=500000     number of uSecs to sleep between disable and enable radio.
+					-> that works to restore scan sensitivity, but ineffective for other issues.
+
 0.8.5.5 4/18/2021	(experimental)
 
 				Note: this version enables quick reset by default.
@@ -51,6 +123,12 @@ History:
 					#Quick_method=wpa       # set to a quick reset mode, under development. (0.8.5.0)
                     #Quick_method=ifdnup76  # Not any better. For docmentation only.
 					-- none of this is acceptable. See 2021-04-15.05
+
+2021-04-11.01	Enh: should we try to compensate for the long loop activity delay to make PINGSECS more accurate?
+					CXL: not at this time
+					This would possibly disrupt the other settings.
+					Can do sub-second sleeps with usleep, but cannot easily measure sub seconds.
+
 
 0.8.5.4 4/13/2021
 

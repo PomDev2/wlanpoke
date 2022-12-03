@@ -1,10 +1,10 @@
 #!/bin/sh
 # Tests wireless connectivity and restarts the wlan if lost. Also, sends link quality statistics to optional tcp logger.
-# Copyright (C) 2020, 2021 POMdev
+# Copyright (C) 2020, 2021, 2022 POMdev
 #
 # This program is free software under GPL3 as stated in LICENSE.md, included.
 
-Version="0.8.5.5 4/18/2021"
+Version="0.8.7.1 12/02/2022"
 
 LOGDIR="/var/log/"      # directory to store 'logs'. Alternative for troubleshooting: '/etc/log' (create directory first)
 GWTXT="wgw.txt"         # where to write router's gateway ip or /dev/null
@@ -21,6 +21,10 @@ LOGKEEP='3'             # highest rotated log number to keep. Set to 't' to trim
 LOGDELIM="-"            # delimiter between incident records, appended by 'print' (0.5.0)
 APPDIR=$(dirname "$0")  # where the app files are located...
 
+SCANOPT="scanctrl.inc"	# include file containing 6 values for wmiconfig --scan --scanctrlflags x x x x x x  plus other options (0.8.7.1)
+							# zero length or missing file inhibits AR6002_reduceScans()
+SCANOPTDEF="0 0 0 0 0 0"	# default options for SCANOPT (0.8.7.1). Written to new file if file does not exist.
+
 PINGWAIT=1              # 0.8.1: deprecated. wait seconds for ping to succeed, otherwise a logged failure.
 PINGSECS=2              # number of seconds to delay between ping tests. (0.7.0)
 PINGRESET=6             # number of times for ping to fail before full reset after successful ping. (0.7.0)
@@ -28,7 +32,8 @@ PINGQUICK=3             # number of times for ping to fail before quick reset.
                         # 0.8.4.3 was -1 0.8.1: was 7 0.7.6: was 3. Disable when not testing. (0.7.0)
 #Quick_method=wpa       # No improvement: set to a quick reset mode, under development. (0.8.5.0)
 #Quick_method=ifdnup76  # No improvement (0.8.5.5)
-
+Quick_method=power      # cycle power to mac and phy, etc. to try to reset radio sensitivity (0.8.5.6)
+PowerNap=500000         # number of uSecs to sleep between disable and enable radio. (0.8.5.6)
 
 #FRWaitSecsMin=12       # Calculated == PINGRESET * PINGSECS. minimum time to hold off after a full reset.   0.8.1.0: 6 trials x 2 secs/trial
 FRWaitSecsMax=60        # maximum time to hold off another full reset after a previous unsuccessful one. 0.8.2.7e: was 120
@@ -38,9 +43,9 @@ FRWaitStepPct=40        # instead of fixed steps, calc array from % increase.
                         #     to include a fixed step initialization function, see below.
 
 TimeFmt=":"             # timestamp format. ":" for HH:MM:SS, "-" for HH-MM-SS, otherwise specified 'date' format, e.g., "-Isec" (0.8.3.1)
-GapsListMax=120         # Maximum size of the LIFO GapsList report. (0.8.3.5c)
+GapsListMax=240         # Maximum size of the LIFO GapsList report. (0.5.5.6) was 120 (0.8.3.5c)
 GapsTrackF=0            # Track ping failures > than this number, e.g., 1 (0.8.4.2)
-ResetsListMax=120       # Maximum size of the LIFO ResetsList report. (0.8.4.1)
+ResetsListMax=240       # Maximum size of the LIFO ResetsList report. (0.5.5.6) was 120 (0.8.4.1)
 FullResetInit=0         # full restart wireless before starting (0.8.5.4)
 
 IFACE="eth1"            # the wlan is not wlan0 but rather eth1
@@ -124,6 +129,7 @@ Help() {
     echo " -W * optional web server 'quick' for status or 'slow' for more, or 'none' (default '$WSERVER')"
     echo " -Wp * optional web server port (default $WSERVERPORT)"
     echo " -S * seconds to delay between ping tests (default $PINGSECS)"
+    echo " -Qm * specific quick reset method (default '$Quick_method'. See source)"
     echo " -Q * number of pings to fail before quick reset (default $PINGQUICK, enable < $PINGRESET, disable -1)"
     echo " -F * number of pings to fail before full reset (default $PINGRESET)"
     echo " -z * sleep seconds (default $SLEEP)"                                         # 0.5.2 was -s
@@ -236,6 +242,28 @@ Dhcp_renew() {                          # 0.7.5.2: try to renew the lease oursel
     kill -s USR1 `cat "$uPID"`
 }
 
+# 0.8.7.0 Try to reduce failures by reducing scanning -- experimental
+# include file containing 6 values for wmiconfig --scan --scanctrlflags x x x x x x  plus other options (0.8.7.1)
+SCANOPT=$APPDIR/$SCANOPT	# it exists in the wlanpoke folder.
+
+# default options for SCANOPT (0.8.7.1). Written to new file if file does not exist.
+# zero length or missing file (after launch) inhibits AR6002_reduceScans()
+if [[ ! -r "$SCANOPT" ]] ; then
+  echo $SCANOPTDEF > $SCANOPT
+fi
+
+AR6002_reduceScans () {
+  #/lib/atheros/wmiconfig --scan --scanctrlflags 0 0 0 0 0 0	
+  local SCANOPTS=$(cat $SCANOPT)
+  # must be >= 11 characters #if [[ ! -z "$SCANOPTS" ]] ; then  (0.8.7.1)
+  if [[ ${#SCANOPTS} -ge 11 ]] ; then
+    /lib/atheros/wmiconfig --scan --scanctrlflags $SCANOPTS
+    echo "Scan: $SCANOPTS"
+  else
+    echo "Scan: no change"
+  fi
+}
+
 # 0.8.3.0 when we full restart wpa_cli, don't count that as an external restart.
 wpa_cli_PID=`pidof wpa_cli`             # ResetQuick needs this running, or it has to signal for dhcpc renew itself.
 
@@ -243,15 +271,21 @@ wpa_cli_PID=`pidof wpa_cli`             # ResetQuick needs this running, or it h
 # 0.7.5.2: Various commands (below) were tried in ResetQuick(), but renewing the lease seems to be best.
 # However, it is supposed to happen because wpa_cli initiates a wpa_action to do that.
 # Doing that in ResetQuick tries to renew the lease before the reassociation, which takes some time, and fails.
-# Make sure wpa_cli is running instead.
-    # 0.7.5.0: do it again just in case a new wpa_cli hasn't fully come on-line.
-    # 0.7.5.1: unreliable. it executes before the wireless has reassociated. rely on wpa_cli -a to request renew lease.
-    # Dhcp_renew                        # this happens before the reassociation.
 
 ResetQuick() {                          # 0.7.4 new requirement: keep jive happy 0.7.0
     DTQRST=$(Time_S)
     Log_addDateTime "Quick: Resetting wlan... $IFACE"            # 0.8.0.0 log this activity
-    if [[ "$Quick_method" == "wpa" ]] ; then                     # conditional to add extra activities. (0.8.5.0)
+    if [[ "$Quick_method" == "power" ]] ; then                   # try power nap. (0.8.5.6)
+      Log_addDateTime "Quick.power disable wlan"
+	  /lib/atheros/wmiconfig --wlan disable
+      Log_addDateTime "Quick.power nap $PowerNap uSecs"
+	  # Give driver and target housekeeping time. may or may not be necessary.
+	  usleep $PowerNap                                           
+      Log_addDateTime "Quick.power enable wlan"
+	  /lib/atheros/wmiconfig --wlan enable
+	  #ifdown -f $IFACE
+	  #ifup -f $IFACE
+    elif [[ "$Quick_method" == "wpa" ]] ; then                   # conditional to add extra activities. (0.8.5.0)
       killall wpa_cli
       # possible conditional here ... if [[ "$Quick_method" == "supplicant" ]] ; then
       Log_addDateTime "killall wpa_supplicant"
@@ -272,6 +306,7 @@ ResetQuick() {                          # 0.7.4 new requirement: keep jive happy
       Log_addDateTime "if up"
       ifconfig $IFACE up
     fi
+	AR6002_reduceScans										     # 0.8.7.0 (Not) Yes, now: Try to reduce scans to reduce radio Rx failure.
     DTEND=$(Time_S)
     Log_addDateTime "Quick: waiting for successful ping..."      # 0.8.0.0 log this activity
 }
@@ -294,6 +329,7 @@ RestartNetwork() {
     wpa_cli_PID=`pidof wpa_cli`                                     # 0.8.3.0 don't count this as an external restart.
     Log_addDateTime "Restarting dhcp"                               # 0.8.0.0 log this activity #echo "Restarting dhcp"
     udhcpc -R -a -p/var/run/udhcpc.eth1.pid -b --syslog -ieth1 -H$HOSTNAME -s/etc/network/udhcpc_action
+	AR6002_reduceScans											 # 0.8.7.0 Try to reduce scans to reduce radio Rx failure.
     DTEND=$(Time_S)
     Log_addDateTime "Full: waiting for successful ping..."       # 0.8.0.0 log this activity
 }
@@ -321,6 +357,7 @@ case $1 in
         -W )    CheckVal $1 $2  ;   shift   ;   WSERVER="$1"    ;;    # 0.7.0
         -Wp )   CheckVal $1 $2  ;   shift   ;   WSERVERPORT="$1" ;;   # 0.7.0
         -S )    CheckVal $1 $2  ;   shift   ;   PINGSECS="$1"   ;;    # 0.7.0
+        -Qm )   CheckVal $1 $2  ;   shift   ;   Quick_method="$1" ;;  # 0.8.5.7
         -Q )    CheckVal $1 $2  ;   shift   ;   PINGQUICK="$1"  ;;    # 0.7.0
         -F )    CheckVal $1 $2  ;   shift   ;   PINGRESET="$1"  ;;    # 0.7.0
         -z )    CheckVal $1 $2  ;   shift   ;   SLEEP="$1"      ;;    # 0.5.2 was -s
@@ -638,7 +675,9 @@ CB_TAIL=0
 # CB_put saves its arguments into the next ($HEAD) buffer position.
 # To Do: Support quotes
 CB_put () {
-  eval "a$CB_HEAD='$@'"
+  #eval "a$CB_HEAD='$@'"
+  local args=$(echo $@ | sed "s/'/--/g" )  # substitute any '\'' characters. Also: substitute all non alpha  "s/[^\-_.,!0-9a-zA-Z]/--/g"
+  eval "a$CB_HEAD='$args'"  
   _=$(( CB_HEAD++ ))            # 0.8.2.0: was let "CB_HEAD=CB_HEAD+1"
   if [[ $CB_HEAD -ge $CB_SIZE ]] ; then
     CB_HEAD=0
@@ -890,9 +929,10 @@ GapsNo=0               # number of outages
 
 
 Gaps_inc () {
-  if [[ ${#GapsList} -gt $GapsListMax ]] ; then
+  # Keep list trimmed. while do ... done was if then..fi (0.8.5.6)
+  while [[ ${#GapsList} -gt $GapsListMax ]] ; do
     GapsList=${GapsList%\-*}
-  fi
+  done
   _z=$(( ++GapsNo ))
   GapsList="-$tuOutageLast+$tuWorkingLast,"$GapsList
 }
@@ -925,9 +965,10 @@ tuResetWorkingLast=0    # last period between resets seconds (0.8.4.1)
 tuResetOutageLast=0     # last reset outage seconds (0.8.4.1)
 
 Resets_inc () {
-  if [[ ${#ResetsList} -gt $ResetsListMax ]] ; then
+  # Keep list trimmed. while do ... done was if then..fi (0.8.5.6)
+  while [[ ${#ResetsList} -gt $ResetsListMax ]] ; do
     ResetsList=${ResetsList%\-*}
-  fi
+  done
   _z=$(( ++ResetsNo ))
   ResetsList="-$tuResetOutageLast+$tuResetWorkingLast,"$ResetsList
 }
@@ -1248,7 +1289,7 @@ tuFirstFail=0                           # save time of first failure (0.8.4.2)
 
 while true; do
 
-  # 0.8.0.0: Do this every time if the gateway is no good, sepeciallf if ping has failed.
+  # Do this every time if the gateway is no good, especially if ping has failed. (0.8.0.0)
   # if [ $iLoop -eq 0 ] && [ $nF -eq 0 ]; then            # do this only every so often. And not if ping has failed.
   # 0.8.0.1: Hey! the size of 0.0.0.0 is 7, not 6! but add \n and wc returns 8
   if [[ $iLoop -eq 0 ]] || [[ $wgwSz -le 8 ]] ; then     # 0.8.2.7: add back $iLoop
@@ -1268,10 +1309,6 @@ while true; do
         #echo gateway $GATEWAY
       fi
       echo $GATEWAY > $GWTXT
-      # if [[ "$LOGLEVEL" -gt 5 ]] ; then
-        #echo 5 "$IPADDR $IPFIRST $IPLAST gateway $GATEWAY"   # 0.8.2.7: combine lines.
-      # echo gateway $GATEWAY
-      # fi
       # 0.8.2.6a report gateway only if changed.
       if [[ ! "$GWo" == "$GATEWAY" ]] ; then
         local msg=$(echo "$(Time_S) $HOSTNAME.$IPLAST"_"$VerSign" "$IPADDR $IPFIRST $IPLAST gateway $GATEWAY")

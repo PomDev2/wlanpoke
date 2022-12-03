@@ -23,7 +23,26 @@ Please address your responses to the slimdevices forums  https://forums.slimdevi
 
 Use the latter for more technical questions and discussions.
 
+NOTE: Experimental Failure Reduction
+
+This version is an experimental release that incorporates a brute force application of an experimental method to reduce WLAN failure. Some portable or mobile functionality may be degraded. You may wish to revert your system to a previous version. Check for updates. Read history.txt. Please post your experiences on the Squeezebox Radio forum and the GitHub issues tab.
+
+A possible cause for failure has been identified as too frequent scanning for alternate access points by the radio even when connected to a strong signal router or access point. This scanning may encounter signals or packets that cause the radio to lose wireless sensitivity, degrade reception, and eventually fail. This version includes a function to attempt to reduce the number of these scans. The function uses very poorly or undocumented calls to the radio's wireless driver and chip in the belief that this will have the desired effect. Testing over a few days suggests that this provides a dramatic improvement in some fixed location radios. Other fixed location radios show less improvement. However, other use cases, especially ones that require frequent switching wireless networks, may be degraded. 
+
+The function is controlled by a small text file in the install directory (/etc/wlanpoke) named "scanctrl.inc." It contains at minimum 6 numbers that disable or enable various aspects of the radio's scan function under some circumstances. The default is a list of 6 zeros, to disable everything possible with this function. That may be too much for your use case.
+
+If your experience is degraded, you may wish to disable this function altogether. To do so, overwrite any existing "scanctrl.inc." file with a short (< 11 character) message, e.g.,
+  echo "stop" > scanctrl.inc
+will do it. Or you can delete the file and then "touch scanctrl.inc" to create a zero length file. If you delete the file, it will be recreated with default values the next time wlanpoke launches.
+You can experiment with the parameters on the fly, e.g., 
+  echo "0 0 1 0 0 0" > scanctrl.inc			(a nonsense example)
+They will be applied after the next quick or full reset. You can pore over the documentation by reading the script and entering /lib/atheros/wmiconfig to get its documentation as it were.
+
 News:
+
+Version 0.8.7.1 (experimental) see above.
+
+Version 0.8.6 (unreleased) fixed a bug that crashed the script when an access point name contains an apostrophe
 
 Version 0.8.5 enables the quick reset by default and improves the RawFails Resets report to show the effect of the quick reset more clearly.
 
