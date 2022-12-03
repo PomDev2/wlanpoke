@@ -65,7 +65,9 @@ To Do:
 
 History:
 
-0.8.7.1 12/02/2022
+0.8.7.1a 12/02/2022
+
+2022-12-02.03	Enh: set default quick method to 'none' prep chip reload.
 
 2022-12-02.01	Enh: make scanctrlflags configurable.
 				-> method to configure on the fly using /etc/wlanpoke/scanctrl.inc:

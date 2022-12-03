@@ -1,4 +1,4 @@
-                wlanpoke User Manual Version 0.8.7.1
+                wlanpoke User Manual Version 0.8.7.1a
 
 Introduction
 
@@ -22,7 +22,7 @@ NOTE: Experimental Failure Reduction
 
 This version is an experimental release that incorporates a brute force application of an experimental method to reduce WLAN failure. Some portable or mobile functionality may be degraded. You may wish to revert your system to a previous version. Check for updates. Read history.txt. Please post your experiences on the Squeezebox Radio forum and the GitHub issues tab.
 
-A possible cause for failure has been identified as too frequent scanning for alternate access points by the radio even when connected to a strong signal router or access point. This scanning may encounter signals or packets that cause the radio to lose wireless sensitivity, degrade reception, and eventually fail. This version includes a function to attempt to reduce the number of these scans. The function uses very poorly or undocumented calls to the radio's wireless driver and chip in the belief that this will have the desired effect. Testing over a few days suggests that this provides a dramatic improvement in some cases. However, other use cases, especially ones that require frequent switching wireless networks, may be degraded. 
+A possible cause for failure has been identified as too frequent scanning for alternate access points by the radio even when connected to a strong signal router or access point. This scanning may encounter signals or packets that cause the radio to lose wireless sensitivity, degrade reception, and eventually fail. This version includes a function to attempt to reduce the number of these scans. The function uses very poorly or undocumented calls to the radio's wireless driver and chip in the belief that this will have the desired effect. Testing over a few days suggests that this provides a dramatic improvement in some fixed location radios. Other fixed location radios show less improvement. However, other use cases, especially ones that require frequent switching wireless networks, may be degraded. 
 
 The function is controlled by a small text file in the install directory (/etc/wlanpoke) named "scanctrl.inc." It contains at minimum 6 numbers that disable or enable various aspects of the radio's scan function under some circumstances. The default is a list of 6 zeros, to disable everything possible with this function. That may be too much for your use case.
 
@@ -30,8 +30,8 @@ If your experience is degraded, you may wish to disable this function altogether
   echo "stop" > scanctrl.inc
 will do it. Or you can delete the file and then "touch scanctrl.inc" to create a zero length file. If you delete the file, it will be recreated with default values the next time wlanpoke launches.
 You can experiment with the parameters on the fly, e.g., 
-  echo "0 0 1 0 0 0" > scanctrl.inc
-They will be applied after the next quick or full reset. 
+  echo "0 0 1 0 0 0" > scanctrl.inc			(a nonsense example)
+They will be applied after the next quick or full reset. You can pore over the documentation by reading the script and entering /lib/atheros/wmiconfig to get its documentation as it were.
 
 
 Usage
@@ -130,7 +130,7 @@ Usage: wlanpoke.sh [options]
  -W * optional web server 'quick' for status or 'slow' for more, or 'none' (default 'none')
  -Wp * optional web server port (default 8080)
  -S * seconds to delay between ping tests (default 2)
- -Qm * specific quick reset method (default 'power')"
+ -Qm * specific quick reset method (default 'none')"
  -Q * number of pings to fail before quick reset (default -1, enable < 6, disable -1)
  -F * number of pings to fail before full reset (default 6)
  -R   full reset wireless before starting
@@ -163,7 +163,7 @@ To specify command line options that rarely or never change, change the default 
 
 -S    If you want to speed up the reset after a failure, set this to 1 second.
 
--Qm	  Specify a quick reset method: one of 'power', 'wpa', or 'ifdnup76'. All methods reassociate with the access point. None of them are fully effective, instead, they delay "the inevitable" repeatedly for a few seconds each time until the next full reset, which restores the connection for a much longer time. Still, the methods recover some connectivity quickly, perhaps quickly enough to avoid gaps in the music, while "warning" the radio that the connection is becoming unreliable (so it could buffer more data for a shorter outage during a full reset). Experiment with this. The default is power, short for power nap. It turns off the radio entirely to save power, requiring a sort of internal reboot to restart. Too bad it is not fully effective. Stay tuned, improvements may be forthcoming. 
+-Qm	  Specify a quick reset method: one of 'power', 'wpa', 'ifdnup76', or 'none'. All methods reassociate with the access point. None of them are fully effective, instead, they delay "the inevitable" repeatedly for a few seconds each time until the next full reset, which restores the connection for a much longer time. Still, the methods recover some connectivity quickly, perhaps quickly enough to avoid gaps in the music, while "warning" the radio that the connection is becoming unreliable (so it could buffer more data for a shorter outage during a full reset). Experiment with this. The former default is power, short for power nap. It turns off the radio entirely to save power, requiring a sort of internal reboot to restart. Too bad it is not fully effective. Stay tuned, improvements may be forthcoming. 
 
 -Q    Set this number to a number a few counts lower than the full reset value below to attempt a quick reset, or -1 to disable quick reset. This parameter is set by default to -1 to disable the quick reset method because it works only "99 times out of 100," which occurred because of bugs in previous versions.
 

@@ -4,7 +4,7 @@
 #
 # This program is free software under GPL3 as stated in LICENSE.md, included.
 
-Version="0.8.7.1 12/02/2022"
+Version="0.8.7.1a 12/02/2022"
 
 LOGDIR="/var/log/"      # directory to store 'logs'. Alternative for troubleshooting: '/etc/log' (create directory first)
 GWTXT="wgw.txt"         # where to write router's gateway ip or /dev/null
@@ -32,7 +32,8 @@ PINGQUICK=3             # number of times for ping to fail before quick reset.
                         # 0.8.4.3 was -1 0.8.1: was 7 0.7.6: was 3. Disable when not testing. (0.7.0)
 #Quick_method=wpa       # No improvement: set to a quick reset mode, under development. (0.8.5.0)
 #Quick_method=ifdnup76  # No improvement (0.8.5.5)
-Quick_method=power      # cycle power to mac and phy, etc. to try to reset radio sensitivity (0.8.5.6)
+#Quick_method=power     # cycle power to mac and phy, etc. to try to reset radio sensitivity (0.8.5.6)
+Quick_method=none       # no quick reset (0.8.5.6)
 PowerNap=500000         # number of uSecs to sleep between disable and enable radio. (0.8.5.6)
 
 #FRWaitSecsMin=12       # Calculated == PINGRESET * PINGSECS. minimum time to hold off after a full reset.   0.8.1.0: 6 trials x 2 secs/trial
@@ -274,7 +275,7 @@ wpa_cli_PID=`pidof wpa_cli`             # ResetQuick needs this running, or it h
 
 ResetQuick() {                          # 0.7.4 new requirement: keep jive happy 0.7.0
     DTQRST=$(Time_S)
-    Log_addDateTime "Quick: Resetting wlan... $IFACE"            # 0.8.0.0 log this activity
+    Log_addDateTime "Quick.$Quick_method: Resetting wlan... $IFACE"    # 0.8.7.1a add method. 0.8.0.0 log this activity
     if [[ "$Quick_method" == "power" ]] ; then                   # try power nap. (0.8.5.6)
       Log_addDateTime "Quick.power disable wlan"
 	  /lib/atheros/wmiconfig --wlan disable
@@ -308,7 +309,7 @@ ResetQuick() {                          # 0.7.4 new requirement: keep jive happy
     fi
 	AR6002_reduceScans										     # 0.8.7.0 (Not) Yes, now: Try to reduce scans to reduce radio Rx failure.
     DTEND=$(Time_S)
-    Log_addDateTime "Quick: waiting for successful ping..."      # 0.8.0.0 log this activity
+    Log_addDateTime "Quick.$Quick_method: waiting for successful ping..."      # 0.8.7.1a add method.  0.8.0.0 log this activity
 }
 
 

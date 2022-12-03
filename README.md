@@ -1,7 +1,7 @@
 # wlanpoke
 Mitigate Wireless Connectivity Loss in Squeezebox Radios
 
-Version 0.8.7.1
+Version 0.8.7.1a
 
 Introduction
 
