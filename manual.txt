@@ -175,6 +175,10 @@ Make a note of the radio's ip address as displayed in Home | Settings | Advanced
 
 Use an ssh client (e.g., Windows 'putty') to connect to the radio's ip address. The default log in is 'root' with the password '1234'.
 
+A modern ssh client may need the following options to connect to the radio's older ssh server, e.g.:
+
+  ssh -oKexAlgorithms=+diffie-hellman-group1-sha1 -oHostKeyAlgorithms=+ssh-dss -c aes256-cbc root@ip_of_radio
+
 If SSH is problematic, you can install and use a hard wired 'TTL' level serial connection to the serial adapter's COM port (e.g., COM3) at 115200 baud. You can also try an Ethernet connection, but this disables the wireless.
 
 Both methods provide an ash (like bash) shell, where you can do linux-y things, such as "ls -al" to get a directory listing.
@@ -190,9 +194,14 @@ o These ephemeral functions go away after closing the session. You will save tim
 
 Of course, you must have already downloaded the zip file so that you can read this manual. Transfer the file. There are several ways to do this. One way is 'tftp' (Trivial FTP). If you don't have a 'tftpd' server running, they are simple to download and install. Put the downloaded wlanpoke-0.8.4.zip in the tftpd root folder, then run:
 
-tftp -g -l wlanpoke-0.8.4.zip -r wlanpoke-0.8.4.zip 192.168.0.4
+  tftp -g -l wlanpoke-0.8.4.zip -r wlanpoke-0.8.4.zip 192.168.0.4
 
 where "192.168.0.4" is replaced by the tftpd server's ip address.
+
+If you have an ssh client installed, the zip-file can be transferred to the radio using scp:
+
+  scp -oKexAlgorithms=+diffie-hellman-group1-sha1 -oHostKeyAlgorithms=+ssh-dss -c aes256-cbc wlanpoke-0.8.4.zip 
+root@ip_of_radio:/root/
 
 Alternatively, use WinSCP:
  1. Download and Install WinSCP
